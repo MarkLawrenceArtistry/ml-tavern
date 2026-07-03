@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toPng } from 'html-to-image';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import TrainerCard from '../components/TrainerCard';
@@ -8,6 +9,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 export default function Profile() {
   const { user } = useAuth();
+  const cardRef = useRef(); // Ref to capture the card for download
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -66,107 +68,141 @@ export default function Profile() {
     setSaving(false);
   };
 
+  // Download logic moved here so we can put the button outside the card
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 3 });
+      const link = document.createElement('a');
+      link.download = `MLBB-ID-${profile.ign || 'card'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download image', err);
+    }
+  };
+
   if (loading) return <div className="text-center py-20 text-white/50">Loading profile...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      <h1 className="text-3xl font-extrabold text-white mb-8">Trainer Card Settings</h1>
+    <div className="max-w-6xl mx-auto py-8">
+        <h1 className="text-3xl font-extrabold text-white mb-10">Esports Card Settings</h1>
 
-      {/* TOP: Live Preview */}
-      <div className="flex justify-center items-start mb-16 bg-white/5 border border-white/10 rounded-xl p-8">
-        <TrainerCard profile={profile} hideDownload />
-      </div>
-
-      {/* BOTTOM: Edit Form */}
-      <div className="max-w-2xl mx-auto">
-        <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">Edit Details</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         
-        <form onSubmit={handleSave} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">In-Game Name (IGN)</label>
-            <input type="text" name="ign" value={profile.ign} onChange={handleChange} className="input-style" placeholder="e.g. ProPlayer123" />
+        {/* LEFT DIV: Trainer Card + Download Button */}
+        <div className="flex flex-col items-center">
+          <div className="lg:sticky lg:top-24">
+            {/* Pass ref here to capture the card, hideDownload to remove internal button */}
+            <TrainerCard ref={cardRef} profile={profile} hideDownload />
+            
+            {/* The Download Button exactly at the bottom of the card */}
+            <button 
+              onClick={handleDownload} 
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-tavern-accent hover:bg-red-700 text-white text-sm font-bold transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download as PNG
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Bio / Description</label>
-            <textarea name="description" value={profile.description} onChange={handleChange} className="input-style resize-none h-20" placeholder="Tell us about yourself..." />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Current Team</label>
-            <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Main Heroes (Must match JSON names exactly for icons)</label>
-            <div className="grid grid-cols-3 gap-3">
-              <input type="text" name="main_hero_1" value={profile.main_hero_1} onChange={handleChange} className="input-style" placeholder="Hero 1" />
-              <input type="text" name="main_hero_2" value={profile.main_hero_2} onChange={handleChange} className="input-style" placeholder="Hero 2" />
-              <input type="text" name="main_hero_3" value={profile.main_hero_3} onChange={handleChange} className="input-style" placeholder="Hero 3" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        {/* RIGHT DIV: The Edit Form */}
+        <div className="w-full max-w-xl">
+          <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">Edit Details</h2>
+          
+          <form onSubmit={handleSave} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Main Role</label>
-              <select name="main_role" value={profile.main_role} onChange={handleChange} className="input-style">
-                <option value="">Select Role</option>
-                {MLBB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <label className="block text-sm font-medium text-white/70 mb-1">In-Game Name (IGN)</label>
+              <input type="text" name="ign" value={profile.ign} onChange={handleChange} className="input-style" placeholder="e.g. ProPlayer123" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Second Role</label>
-              <select name="second_role" value={profile.second_role} onChange={handleChange} className="input-style">
-                <option value="">Select Role</option>
-                {MLBB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Hate Matchup</label>
-              <input type="text" name="hate_hero" value={profile.hate_hero} onChange={handleChange} className="input-style" placeholder="e.g. Fanny" />
+              <label className="block text-sm font-medium text-white/70 mb-1">ID No. / Bio / Description</label>
+              <textarea name="description" value={profile.description} onChange={handleChange} className="input-style resize-none h-20" placeholder="Tell us about yourself..." />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Love Teammate</label>
-              <input type="text" name="love_hero" value={profile.love_hero} onChange={handleChange} className="input-style" placeholder="e.g. Angela" />
+              <label className="block text-sm font-medium text-white/70 mb-1">Current Team</label>
+              <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Favorite MLBB Esports Team</label>
-            <input type="text" name="favorite_esports_team" value={profile.favorite_esports_team} onChange={handleChange} className="input-style" placeholder="e.g. Blacklist International" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Month)</label>
-              <select name="started_playing_month" value={profile.started_playing_month} onChange={handleChange} className="input-style">
-                <option value="">Select Month</option>
-                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <label className="block text-sm font-medium text-white/70 mb-1">Main Heroes (type the name of the hero!)</label>
+              <div className="grid grid-cols-3 gap-3">
+                <input type="text" name="main_hero_1" value={profile.main_hero_1} onChange={handleChange} className="input-style" placeholder="Hero 1" />
+                <input type="text" name="main_hero_2" value={profile.main_hero_2} onChange={handleChange} className="input-style" placeholder="Hero 2" />
+                <input type="text" name="main_hero_3" value={profile.main_hero_3} onChange={handleChange} className="input-style" placeholder="Hero 3" />
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Main Role</label>
+                <select name="main_role" value={profile.main_role} onChange={handleChange} className="input-style">
+                  <option value="">Select Role</option>
+                  {MLBB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Second Role</label>
+                <select name="second_role" value={profile.second_role} onChange={handleChange} className="input-style">
+                  <option value="">Select Role</option>
+                  {MLBB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Hate Matchup</label>
+                <input type="text" name="hate_hero" value={profile.hate_hero} onChange={handleChange} className="input-style" placeholder="e.g. Fanny" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Love Teammate</label>
+                <input type="text" name="love_hero" value={profile.love_hero} onChange={handleChange} className="input-style" placeholder="e.g. Angela" />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Year)</label>
-              <input type="text" name="started_playing_day" value={profile.started_playing_day} onChange={handleChange} className="input-style" placeholder="e.g. 2018" />
+              <label className="block text-sm font-medium text-white/70 mb-1">Favorite MLBB Esports Team</label>
+              <input type="text" name="favorite_esports_team" value={profile.favorite_esports_team} onChange={handleChange} className="input-style" placeholder="e.g. Blacklist International" />
             </div>
-          </div>
 
-          {message && (
-            <p className={`text-sm font-semibold ${message.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
-              {message}
-            </p>
-          )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Month)</label>
+                <select name="started_playing_month" value={profile.started_playing_month} onChange={handleChange} className="input-style">
+                  <option value="">Select Month</option>
+                  {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Year)</label>
+                <input type="text" name="started_playing_day" value={profile.started_playing_day} onChange={handleChange} className="input-style" placeholder="e.g. 2018" />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full py-3 rounded-lg bg-tavern-accent hover:bg-red-700 text-white font-bold transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </form>
+            {message && (
+              <p className={`text-sm font-semibold ${message.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
+                {message}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full py-3 rounded-lg bg-tavern-accent hover:bg-red-700 text-white font-bold transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </form>
+        </div>
+
       </div>
     </div>
   );

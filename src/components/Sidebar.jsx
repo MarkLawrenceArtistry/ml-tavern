@@ -21,7 +21,7 @@ const navLinks = [
   { to: '/market', label: 'Buy & Sell', Icon: Icons.Tag },
   { to: '/teams', label: 'Team Finder', Icon: Icons.Users },
   { to: '/bracket', label: 'Bracket Maker', Icon: Icons.Trophy, hot: true },
-  { to: '/profile', label: 'Trainer Card', Icon: Icons.Card, hot: true },
+    { to: '/profile', label: 'Esports Card', Icon: Icons.Card, hot: true },
   { to: '/settings', label: 'Settings', Icon: Icons.Settings },
   { to: '/admin', label: 'Admin Panel', Icon: Icons.Chart, adminOnly: true },
 ];

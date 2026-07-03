@@ -51,7 +51,7 @@ export default function PublicProfile() {
       </div>
 
       {/* Trainer Card Preview */}
-      <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">MLBB ID Card</h2>
+        <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">MLBB Esports Card</h2>
       <div className="flex justify-center mb-16">
         <TrainerCard profile={profile} />
       </div>
