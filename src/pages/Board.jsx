@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Markdown from '../components/Markdown';
-import { Link } from 'react-router-dom';
 
 export default function Board({ tableName, boardType, title }) {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,51 +25,59 @@ export default function Board({ tableName, boardType, title }) {
   // Comment State
   const [commentText, setCommentText] = useState('');
 
-    useEffect(() => {
-        // 1. CRITICAL: Reset all form states when switching between boards
-        setShowForm(false);
-        setIsEditing(false);
-        setFormData({ title: '', content: '' });
-        setSelectedPost(null);
-        setComments([]);
-        setFormError('');
+  // 1. FETCH DATA ONLY
+  const fetchPosts = async () => {
+    setLoading(true);
+    const [postsRes, upvotesRes] = await Promise.all([
+      supabase.from(tableName).select(`*, profiles(ign)`).order('created_at', { ascending: false }),
+      supabase.from('upvotes').select('target_id').eq('board_type', boardType)
+    ]);
+    
+    if (postsRes.data) setPosts(postsRes.data);
+    
+    if (upvotesRes.data) {
+      const counts = {};
+      upvotesRes.data.forEach(u => { counts[u.target_id] = (counts[u.target_id] || 0) + 1; });
+      setUpvoteCounts(counts);
+    }
+    setLoading(false);
+  };
 
-        // 2. Fetch data for the new board
-        fetchPosts();
-        if (user) fetchUserUpvotes();
-        
-        // 3. Pilot Specific: Check if user already has a post to edit
-        if (user && boardType === 'pilot') {
-        supabase.from('pilot_posts').select('*').eq('user_id', user.id).maybeSingle()
-            .then(({ data }) => {
-            if (data) {
-                setFormData({ title: data.title, content: data.content });
-                setIsEditing(true);
-                setShowForm(true);
-            }
-            });
-        }
-    }, [boardType, user]);
+  // 2. INITIAL LOAD & PILOT CHECK
+  useEffect(() => {
+    // Reset states when switching boards
+    setShowForm(false);
+    setIsEditing(false);
+    setFormData({ title: '', content: '' });
+    setSelectedPost(null);
+    setComments([]);
+    setFormError('');
 
-    const fetchPosts = async () => {
-        setLoading(true);
-        const [postsRes, upvotesRes] = await Promise.all([
-        supabase.from(tableName).select(`*, profiles(ign)`).order('created_at', { ascending: false }),
-        supabase.from('upvotes').select('target_id').eq('board_type', boardType)
-        ]);
-        
-        if (postsRes.data) setPosts(postsRes.data);
-        
-        // Calculate counts in memory
-        if (upvotesRes.data) {
-        const counts = {};
-        upvotesRes.data.forEach(u => {
-            counts[u.target_id] = (counts[u.target_id] || 0) + 1;
+    fetchPosts();
+    if (user) fetchUserUpvotes();
+    
+    if (user && boardType === 'pilot') {
+      supabase.from('pilot_posts').select('*').eq('user_id', user.id).maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setFormData({ title: data.title, content: data.content });
+            setIsEditing(true);
+            setShowForm(true);
+          }
         });
-        setUpvoteCounts(counts);
-        }
-        setLoading(false);
-    };
+    }
+  }, [boardType, user]);
+
+  // 3. HANDLE NOTIFICATION REDIRECT (Completely separated from fetchPosts)
+  useEffect(() => {
+    const targetPostId = searchParams.get('post');
+    if (targetPostId && posts.length > 0 && !selectedPost) {
+      const targetPost = posts.find(p => p.id === targetPostId);
+      if (targetPost) {
+        openComments(targetPost);
+      }
+    }
+  }, [posts, searchParams]);
 
   const fetchUserUpvotes = async () => {
     const { data } = await supabase
@@ -94,7 +103,6 @@ export default function Board({ tableName, boardType, title }) {
     } else {
       const { error } = await supabase.from(tableName).insert([{ ...formData, user_id: user.id }]);
       if (error) {
-        // Catch DB limits (Pilot: 1 post, Buy/Sell: 1 per day)
         setFormError(error.message);
       } else {
         setFormData({ title: '', content: '' });
@@ -110,7 +118,6 @@ export default function Board({ tableName, boardType, title }) {
     const key = `${targetType}-${targetId}`;
     const isUpvoted = userUpvotes.has(key);
 
-    // Optimistic UI update
     const newUpvotes = new Set(userUpvotes);
     if (isUpvoted) newUpvotes.delete(key); else newUpvotes.add(key);
     setUserUpvotes(newUpvotes);
@@ -130,7 +137,7 @@ export default function Board({ tableName, boardType, title }) {
       reporter_id: user.id, target_type: targetType, target_id: targetId, board_type: boardType
     }]);
 
-    if (error) alert(error.message); // Triggers daily limit error from DB
+    if (error) alert(error.message); 
     else alert("Report submitted successfully.");
   };
 
@@ -164,7 +171,6 @@ export default function Board({ tableName, boardType, title }) {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-extrabold text-white">{title}</h1>
         
-        {/* Pilot logic: Hide 'Create' if editing, Others: show toggle */}
         {(boardType !== 'pilot' || !isEditing) && (
           <button 
             onClick={() => { setShowForm(!showForm); setFormError(''); }}
@@ -175,7 +181,6 @@ export default function Board({ tableName, boardType, title }) {
         )}
       </div>
 
-      {/* Create / Edit Form */}
       {showForm && (
         <form onSubmit={handleFormSubmit} className="mb-8 bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
           <h2 className="text-xl font-bold">{isEditing ? 'Edit Your Post' : 'Create Post'}</h2>
@@ -187,7 +192,7 @@ export default function Board({ tableName, boardType, title }) {
           <div>
             <label className="block text-sm text-white/70 mb-1">Content (Supports Markdown)</label>
             <textarea required minLength={20} maxLength={5000} rows={6} value={formData.content} 
-              onChange={e => setFormData({...formData, content: e.target.value})} className="input-style resize-none" placeholder="Write your post here... (**bold**, *italic*, - lists)" />
+              onChange={e => setFormData({...formData, content: e.target.value})} className="input-style resize-none" placeholder="Write your post here..." />
           </div>
           
           {formError && <p className="text-red-400 text-sm font-semibold">{formError}</p>}
@@ -198,7 +203,6 @@ export default function Board({ tableName, boardType, title }) {
         </form>
       )}
 
-      {/* Post List or Detail View */}
       {!selectedPost ? (
         <div className="space-y-4">
           {loading ? <p className="text-white/40 text-center py-10">Loading posts...</p> : 
@@ -206,10 +210,8 @@ export default function Board({ tableName, boardType, title }) {
             posts.map(post => (
               <PostCard 
                 key={post.id} post={post} boardType={boardType} 
-                userUpvotes={userUpvotes} 
-                upvoteCounts={upvoteCounts} // <-- ADD THIS
-                handleUpvote={handleUpvote} 
-                handleReport={handleReport} openComments={openComments} 
+                userUpvotes={userUpvotes} upvoteCounts={upvoteCounts}
+                handleUpvote={handleUpvote} handleReport={handleReport} openComments={openComments} 
               />
             ))
           }
@@ -241,7 +243,6 @@ export default function Board({ tableName, boardType, title }) {
             </button>
           </div>
 
-          {/* Comments Section */}
           <div className="mt-8 space-y-4">
             <h3 className="text-xl font-bold text-white">Comments ({comments.length})</h3>
             
@@ -272,8 +273,6 @@ export default function Board({ tableName, boardType, title }) {
   );
 }
 
-// Isolated Post Card Component for the List View
-// Add upvoteCounts to the function parameters
 function PostCard({ post, boardType, userUpvotes, upvoteCounts, handleUpvote, handleReport, openComments }) {
   const upvoteKey = `post-${post.id}`;
   return (
@@ -283,7 +282,7 @@ function PostCard({ post, boardType, userUpvotes, upvoteCounts, handleUpvote, ha
         <h3 className="text-lg font-bold text-white">{post.title}</h3>
         <button onClick={(e) => { e.stopPropagation(); handleReport('post', post.id); }} className="text-xs text-white/20 hover:text-red-400 transition-colors">Report</button>
       </div>
-      <p className="text-sm text-white/40 mb-4">by <Link to={`/user/${post.user_id}`} className="hover:text-tavern-accent transition-colors hover:underline">{post.profiles?.ign || 'Unknown'}</Link> • {new Date(post.created_at).toLocaleDateString()}</p>
+      <p className="text-sm text-white/40 mb-4">by <Link to={`/user/${post.user_id}`} className="hover:text-tavern-accent transition-colors hover:underline" onClick={e => e.stopPropagation()}>{post.profiles?.ign || 'Unknown'}</Link> • {new Date(post.created_at).toLocaleDateString()}</p>
       
       <div className="text-white/70 text-sm line-clamp-2 mb-4">
         <Markdown content={post.content} />

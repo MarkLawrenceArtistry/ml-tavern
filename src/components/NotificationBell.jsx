@@ -43,6 +43,7 @@ export default function NotificationBell() {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+const boardRoutes = { pilot: '/pilots', buy_sell: '/market', esports: '/teams' };
 
   return (
     <div className="relative">
@@ -68,26 +69,27 @@ export default function NotificationBell() {
             <div className="p-4 border-b border-white/10 font-bold text-white">
               Notifications
             </div>
-            <div className="max-h-96 overflow-y-auto">
+                        <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
                 <p className="p-4 text-sm text-white/40 text-center">No notifications yet</p>
               ) : (
                 notifications.map((n) => (
-                  <div
-                    key={n.id}
+                  <Link 
+                    key={n.id} 
+                    to={`${boardRoutes[n.board_type]}?post=${n.post_id}`}
                     onClick={() => !n.read && markAsRead(n.id)}
-                    className={`p-4 border-b border-white/5 cursor-pointer transition-colors hover:bg-white/5 ${
+                    className={`block p-4 border-b border-white/5 cursor-pointer transition-colors hover:bg-white/5 ${
                       !n.read ? 'bg-white/5' : ''
                     }`}
                   >
                     <p className="text-sm text-white">
-                      <span className="font-bold text-tavern-accent"><Link to={`/user/${n.actor_id}`} className="hover:underline">{n.profiles?.ign || 'Someone'}</Link></span>
+                      <span className="font-bold text-tavern-accent">{n.profiles?.ign || 'Someone'}</span>
                       {n.type === 'comment' ? ' commented on your post.' : ' upvoted your post.'}
                     </p>
                     <p className="text-xs text-white/30 mt-1">
                       {new Date(n.created_at).toLocaleDateString()}
                     </p>
-                  </div>
+                  </Link>
                 ))
               )}
             </div>

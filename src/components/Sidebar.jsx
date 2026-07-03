@@ -20,8 +20,8 @@ const navLinks = [
   { to: '/pilots', label: 'Pilot Services', Icon: Icons.Shield },
   { to: '/market', label: 'Buy & Sell', Icon: Icons.Tag },
   { to: '/teams', label: 'Team Finder', Icon: Icons.Users },
-  { to: '/bracket', label: 'Bracket Maker', Icon: Icons.Trophy },
-  { to: '/profile', label: 'Trainer Card', Icon: Icons.Card },
+  { to: '/bracket', label: 'Bracket Maker', Icon: Icons.Trophy, hot: true },
+  { to: '/profile', label: 'Trainer Card', Icon: Icons.Card, hot: true },
   { to: '/settings', label: 'Settings', Icon: Icons.Settings },
   { to: '/admin', label: 'Admin Panel', Icon: Icons.Chart, adminOnly: true },
 ];
@@ -68,12 +68,13 @@ export default function Sidebar({ isAdmin }) {
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
-          {filteredLinks.map(link => (
-            <NavLink key={link.to} to={link.to} onClick={() => setIsOpen(false)} className={linkClasses}>
-              <link.Icon />
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
+            {filteredLinks.map(link => (
+                <NavLink key={link.to} to={link.to} onClick={() => setIsOpen(false)} className={linkClasses}>
+                    <link.Icon />
+                    <span className="flex-1 text-left">{link.label}</span>
+                    {link.hot && <span className="bg-tavern-accent text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none">HOT</span>}
+                </NavLink>
+            ))}
         </nav>
 
         <div className="mt-auto pt-4 border-t border-white/10">

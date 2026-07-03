@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import TrainerCard from '../components/TrainerCard';
@@ -8,14 +8,14 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 
 export default function Profile() {
   const { user } = useAuth();
-  const cardRef = useRef();
-  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   
   const [profile, setProfile] = useState({
     ign: '',
+    description: '',
+    current_team: '',
     main_hero_1: '',
     main_hero_2: '',
     main_hero_3: '',
@@ -23,8 +23,6 @@ export default function Profile() {
     second_role: '',
     hate_hero: '',
     love_hero: '',
-    description: '',
-    current_team: '',
     favorite_esports_team: '',
     started_playing_month: '',
     started_playing_day: '',
@@ -71,26 +69,36 @@ export default function Profile() {
   if (loading) return <div className="text-center py-20 text-white/50">Loading profile...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-extrabold text-white mb-8">Trainer Card Settings</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        
-        {/* Left Side: Live Preview */}
-        <div className="flex justify-center items-start sticky top-24">
-          <TrainerCard ref={cardRef} profile={profile} />
-        </div>
+      {/* TOP: Live Preview */}
+      <div className="flex justify-center items-start mb-16 bg-white/5 border border-white/10 rounded-xl p-8">
+        <TrainerCard profile={profile} hideDownload />
+      </div>
 
-        {/* Right Side: Edit Form */}
-        <form onSubmit={handleSave} className="space-y-6 bg-white/5 p-6 rounded-xl border border-white/10">
-          
+      {/* BOTTOM: Edit Form */}
+      <div className="max-w-2xl mx-auto">
+        <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">Edit Details</h2>
+        
+        <form onSubmit={handleSave} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-white/70 mb-1">In-Game Name (IGN)</label>
             <input type="text" name="ign" value={profile.ign} onChange={handleChange} className="input-style" placeholder="e.g. ProPlayer123" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Main Heroes</label>
+            <label className="block text-sm font-medium text-white/70 mb-1">Bio / Description</label>
+            <textarea name="description" value={profile.description} onChange={handleChange} className="input-style resize-none h-20" placeholder="Tell us about yourself..." />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-1">Current Team</label>
+            <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-1">Main Heroes (Must match JSON names exactly for icons)</label>
             <div className="grid grid-cols-3 gap-3">
               <input type="text" name="main_hero_1" value={profile.main_hero_1} onChange={handleChange} className="input-style" placeholder="Hero 1" />
               <input type="text" name="main_hero_2" value={profile.main_hero_2} onChange={handleChange} className="input-style" placeholder="Hero 2" />
@@ -117,11 +125,11 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Hate Matchup (Enemy Hero)</label>
+              <label className="block text-sm font-medium text-white/70 mb-1">Hate Matchup</label>
               <input type="text" name="hate_hero" value={profile.hate_hero} onChange={handleChange} className="input-style" placeholder="e.g. Fanny" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Love Teammate (Ally Hero)</label>
+              <label className="block text-sm font-medium text-white/70 mb-1">Love Teammate</label>
               <input type="text" name="love_hero" value={profile.love_hero} onChange={handleChange} className="input-style" placeholder="e.g. Angela" />
             </div>
           </div>
@@ -143,15 +151,6 @@ export default function Profile() {
               <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Year)</label>
               <input type="text" name="started_playing_day" value={profile.started_playing_day} onChange={handleChange} className="input-style" placeholder="e.g. 2018" />
             </div>
-            <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Bio / Description</label>
-                <textarea name="description" value={profile.description} onChange={handleChange} className="input-style resize-none h-20" placeholder="Tell us about yourself..." />
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Current Team</label>
-                <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
-            </div>
           </div>
 
           {message && (
@@ -168,7 +167,6 @@ export default function Profile() {
             {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </form>
-
       </div>
     </div>
   );
