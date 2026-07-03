@@ -32,7 +32,7 @@ export default function Auth() {
         
         // AuthContext automatically detects the login and updates the state.
         // We just need to redirect them to the home page.
-        navigate('/');
+        navigate('/dashboard');
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
