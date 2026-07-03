@@ -59,7 +59,7 @@ export default function Auth() {
             ML TAVERN
           </h1>
           <p className="text-white/50 text-sm">
-            {isLogin ? 'Welcome back, Trainer' : 'Create your account'}
+            {isLogin ? 'Welcome back, Player!' : 'Create your account'}
           </p>
         </div>
 
