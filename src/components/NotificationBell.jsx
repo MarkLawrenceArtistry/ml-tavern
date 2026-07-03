@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export default function NotificationBell() {
   const { user } = useAuth();
@@ -80,7 +81,7 @@ export default function NotificationBell() {
                     }`}
                   >
                     <p className="text-sm text-white">
-                      <span className="font-bold text-tavern-accent">{n.profiles?.ign || 'Someone'}</span>
+                      <span className="font-bold text-tavern-accent"><Link to={`/user/${n.actor_id}`} className="hover:underline">{n.profiles?.ign || 'Someone'}</Link></span>
                       {n.type === 'comment' ? ' commented on your post.' : ' upvoted your post.'}
                     </p>
                     <p className="text-xs text-white/30 mt-1">

@@ -23,6 +23,8 @@ export default function Profile() {
     second_role: '',
     hate_hero: '',
     love_hero: '',
+    description: '',
+    current_team: '',
     favorite_esports_team: '',
     started_playing_month: '',
     started_playing_day: '',
@@ -140,6 +142,15 @@ export default function Profile() {
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1">Started Playing (Year)</label>
               <input type="text" name="started_playing_day" value={profile.started_playing_day} onChange={handleChange} className="input-style" placeholder="e.g. 2018" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Bio / Description</label>
+                <textarea name="description" value={profile.description} onChange={handleChange} className="input-style resize-none h-20" placeholder="Tell us about yourself..." />
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Current Team</label>
+                <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
             </div>
           </div>
 

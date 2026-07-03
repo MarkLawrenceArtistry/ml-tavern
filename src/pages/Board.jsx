@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Markdown from '../components/Markdown';
+import { Link } from 'react-router-dom';
 
 export default function Board({ tableName, boardType, title }) {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function Board({ tableName, boardType, title }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [userUpvotes, setUserUpvotes] = useState(new Set());
+  const [upvoteCounts, setUpvoteCounts] = useState({});
 
   // Form States
   const [showForm, setShowForm] = useState(false);
@@ -48,16 +50,25 @@ export default function Board({ tableName, boardType, title }) {
         }
     }, [boardType, user]);
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from(tableName)
-      .select(`*, profiles(ign)`)
-      .order('created_at', { ascending: false });
-      
-    if (data) setPosts(data);
-    setLoading(false);
-  };
+    const fetchPosts = async () => {
+        setLoading(true);
+        const [postsRes, upvotesRes] = await Promise.all([
+        supabase.from(tableName).select(`*, profiles(ign)`).order('created_at', { ascending: false }),
+        supabase.from('upvotes').select('target_id').eq('board_type', boardType)
+        ]);
+        
+        if (postsRes.data) setPosts(postsRes.data);
+        
+        // Calculate counts in memory
+        if (upvotesRes.data) {
+        const counts = {};
+        upvotesRes.data.forEach(u => {
+            counts[u.target_id] = (counts[u.target_id] || 0) + 1;
+        });
+        setUpvoteCounts(counts);
+        }
+        setLoading(false);
+    };
 
   const fetchUserUpvotes = async () => {
     const { data } = await supabase
@@ -195,7 +206,9 @@ export default function Board({ tableName, boardType, title }) {
             posts.map(post => (
               <PostCard 
                 key={post.id} post={post} boardType={boardType} 
-                userUpvotes={userUpvotes} handleUpvote={handleUpvote} 
+                userUpvotes={userUpvotes} 
+                upvoteCounts={upvoteCounts} // <-- ADD THIS
+                handleUpvote={handleUpvote} 
                 handleReport={handleReport} openComments={openComments} 
               />
             ))
@@ -212,7 +225,7 @@ export default function Board({ tableName, boardType, title }) {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-white mb-1">{selectedPost.title}</h2>
-                <p className="text-sm text-white/40">by {selectedPost.profiles?.ign || 'Unknown'} • {new Date(selectedPost.created_at).toLocaleDateString()}</p>
+                <p className="text-sm text-white/40">by <Link to={`/user/${selectedPost.user_id}`} className="hover:text-tavern-accent transition-colors hover:underline">{selectedPost.profiles?.ign || 'Unknown'}</Link> • {new Date(selectedPost.created_at).toLocaleDateString()}</p>
               </div>
               <button onClick={() => handleReport('post', selectedPost.id)} className="text-xs text-white/30 hover:text-red-400 transition-colors">Report</button>
             </div>
@@ -241,7 +254,7 @@ export default function Board({ tableName, boardType, title }) {
             {comments.map(c => (
               <div key={c.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-start">
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-white mb-1">{c.profiles?.ign || 'Unknown'} <span className="font-normal text-white/30 text-xs ml-2">{new Date(c.created_at).toLocaleDateString()}</span></p>
+                  <p className="text-sm font-bold text-white mb-1"><Link to={`/user/${c.user_id}`} className="hover:text-tavern-accent transition-colors hover:underline">{c.profiles?.ign || 'Unknown'}</Link> <span className="font-normal text-white/30 text-xs ml-2">{new Date(c.created_at).toLocaleDateString()}</span></p>
                   <p className="text-white/80 text-sm">{c.content}</p>
                 </div>
                 <div className="flex items-center gap-4 ml-4 shrink-0">
@@ -260,7 +273,8 @@ export default function Board({ tableName, boardType, title }) {
 }
 
 // Isolated Post Card Component for the List View
-function PostCard({ post, boardType, userUpvotes, handleUpvote, handleReport, openComments }) {
+// Add upvoteCounts to the function parameters
+function PostCard({ post, boardType, userUpvotes, upvoteCounts, handleUpvote, handleReport, openComments }) {
   const upvoteKey = `post-${post.id}`;
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/20 transition-colors cursor-pointer"
@@ -269,7 +283,7 @@ function PostCard({ post, boardType, userUpvotes, handleUpvote, handleReport, op
         <h3 className="text-lg font-bold text-white">{post.title}</h3>
         <button onClick={(e) => { e.stopPropagation(); handleReport('post', post.id); }} className="text-xs text-white/20 hover:text-red-400 transition-colors">Report</button>
       </div>
-      <p className="text-sm text-white/40 mb-4">by {post.profiles?.ign || 'Unknown'} • {new Date(post.created_at).toLocaleDateString()}</p>
+      <p className="text-sm text-white/40 mb-4">by <Link to={`/user/${post.user_id}`} className="hover:text-tavern-accent transition-colors hover:underline">{post.profiles?.ign || 'Unknown'}</Link> • {new Date(post.created_at).toLocaleDateString()}</p>
       
       <div className="text-white/70 text-sm line-clamp-2 mb-4">
         <Markdown content={post.content} />
@@ -277,9 +291,9 @@ function PostCard({ post, boardType, userUpvotes, handleUpvote, handleReport, op
 
       <div className="flex items-center gap-4" onClick={e => e.stopPropagation()}>
         <button onClick={() => handleUpvote('post', post.id)} 
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${userUpvotes.has(upvoteKey) ? 'bg-tavern-accent/20 border-tavern-accent text-tavern-accent' : 'border-white/20 hover:border-tavern-accent text-white/80 hover:text-tavern-accent'}`}>
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${userUpvotes.has(upvoteKey) ? 'bg-tavern-accent/20 border-tavern-accent text-tavern-accent' : 'border-white/20 hover:border-tavern-accent text-white/80 hover:text-tavern-accent'}`}>
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-          Upvote
+          {upvoteCounts[post.id] || 0}
         </button>
         <span className="text-sm text-white/30">Click to view comments</span>
       </div>

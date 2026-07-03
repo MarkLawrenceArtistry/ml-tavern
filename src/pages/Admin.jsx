@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-const TABS = ['Analytics', 'Error Finder', 'Moderation', 'Logs'];
+const TABS = ['Analytics', 'Users', 'Error Finder', 'Moderation', 'Logs'];
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('Analytics');
@@ -11,6 +11,8 @@ export default function Admin() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [users, setUsers] = useState([]);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -19,17 +21,19 @@ export default function Admin() {
     setLoading(true);
     
     // Run all fetches in parallel
-    const [analyticsRes, errorsRes, reportsRes, logsRes] = await Promise.all([
-      supabase.from('site_analytics').select('*').single(),
-      supabase.from('error_logs').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('reports').select('*, reporter:profiles!reports_reporter_id_fkey(ign)').order('created_at', { ascending: false }).limit(50),
-      supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
+    const [analyticsRes, usersRes, errorsRes, reportsRes, logsRes] = await Promise.all([
+        supabase.from('site_analytics').select('*').single(),
+        supabase.from('profiles').select('*, user_roles!user_roles_user_id_fkey(role)').order('created_at', { ascending: false }),
+        supabase.from('error_logs').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('reports').select('*, reporter:profiles!reports_reporter_id_fkey(ign)').order('created_at', { ascending: false }).limit(50),
+        supabase.from('admin_logs').select('*').order('created_at', { ascending: false }).limit(50),
     ]);
 
     if (analyticsRes.data) setAnalytics(analyticsRes.data);
     if (errorsRes.data) setErrors(errorsRes.data);
     if (reportsRes.data) setReports(reportsRes.data);
     if (logsRes.data) setLogs(logsRes.data);
+    if (usersRes.data) setUsers(usersRes.data);
     
     setLoading(false);
   };
@@ -50,6 +54,22 @@ export default function Admin() {
   };
 
   if (loading) return <div className="text-center py-20 text-white/50">Loading Admin Dashboard...</div>;
+
+    const handleDeleteReportedPost = async (report) => {
+    if (!window.confirm('Permanently delete this post?')) return;
+    
+    const { error } = await supabase
+      .from(`${report.board_type}_posts`) // e.g., pilot_posts
+      .delete()
+      .eq('id', report.target_id);
+      
+    if (error) {
+      alert('Failed to delete post.');
+    } else {
+      handleUpdateReportStatus(report.id, 'actioned');
+      alert('Post deleted successfully.');
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -148,10 +168,10 @@ export default function Admin() {
                     {report.status}
                   </span>
                   
-                  {report.status === 'pending' && (
+                    {report.status === 'pending' && (
                     <div className="flex gap-2 ml-2">
-                      <button onClick={() => handleUpdateReportStatus(report.id, 'dismissed')} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-xs font-bold text-white transition-colors">Dismiss</button>
-                      <button onClick={() => handleUpdateReportStatus(report.id, 'actioned')} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-xs font-bold text-white transition-colors">Action</button>
+                      <button onClick={() => handleUpdateReportStatus(report.id, 'dismissed')} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-xs font-bold text-white transition-colors">Acknowledge</button>
+                      <button onClick={() => handleDeleteReportedPost(report)} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded text-xs font-bold text-white transition-colors">Delete Post</button>
                     </div>
                   )}
                 </div>
@@ -183,6 +203,39 @@ export default function Admin() {
                     <td className="px-6 py-4 text-white/50 text-xs truncate max-w-md">
                       {log.details ? JSON.stringify(log.details) : 'N/A'}
                     </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'Users' && (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white/5 text-white/50 uppercase text-xs tracking-wider">
+              <tr>
+                <th className="px-6 py-4">User ID</th>
+                <th className="px-6 py-4">IGN</th>
+                <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Joined</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {users.length === 0 ? (
+                <tr><td colSpan="4" className="px-6 py-10 text-center text-white/30">No users found.</td></tr>
+              ) : (
+                users.map(u => (
+                  <tr key={u.id} className="hover:bg-white/5">
+                    <td className="px-6 py-4 text-white/40 font-mono text-xs">{u.id.substring(0, 12)}...</td>
+                    <td className="px-6 py-4 text-white font-semibold">{u.ign || 'Not set'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${u.user_roles?.role === 'admin' ? 'bg-tavern-accent/20 text-tavern-accent' : 'bg-white/10 text-white/50'}`}>
+                        {u.user_roles?.role || 'user'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-white/40">{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))
               )}
