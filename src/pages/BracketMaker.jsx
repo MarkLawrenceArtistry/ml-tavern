@@ -2,7 +2,7 @@
 // FILE: src/pages/BracketMaker.jsx
 // ============================================================
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { toPng } from 'html-to-image';
+import { safeToPng } from '../lib/safeToPng';
 
 // ---- Helpers ----
 function nextPow2(n) {
@@ -550,11 +550,7 @@ export default function BracketMaker() {
     if (!imgRef.current) return;
     setDownloading(true);
     try {
-      const url = await toPng(imgRef.current, {
-        backgroundColor: '#0a0a0a',
-        pixelRatio: 2,
-        cacheBust: true,
-      });
+      const dataUrl = await safeToPng(imgRef.current);
       const a = document.createElement('a');
       a.download = `${(name || 'bracket')
         .replace(/\s+/g, '_')

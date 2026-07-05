@@ -2,7 +2,7 @@
 // FILE: src/pages/GamePredict.jsx
 // ============================================================
 import { useState, useEffect, useRef } from 'react';
-import { toPng } from 'html-to-image';
+import { safeToPng } from '../lib/safeToPng';
 import MatchupCard from '../components/MatchupCard';
 import heroData from '../data/heroes.json';
 
@@ -552,7 +552,7 @@ You MUST use EXACTLY this format:
                     const el = document.getElementById('matchup-card-img');
                     if (!el) return alert('Card not ready');
                     try {
-                      const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+                      const dataUrl = await safeToPng(el);
                       const link = document.createElement('a');
                       link.download = `MLBB-Prediction-${Date.now()}.png`;
                       link.href = dataUrl;

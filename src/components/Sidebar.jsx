@@ -148,6 +148,7 @@ export default function Sidebar({ isAdmin }) {
     <>
       {/* ===== MOBILE TOP BAR ===== */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-tavern-dark/95 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4 h-14">
+        
         <h1 className="text-lg font-bold text-tavern-accent tracking-tight">
           ML TAVERN
         </h1>
