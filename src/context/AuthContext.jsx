@@ -1,17 +1,29 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+// ============================================================
+// FILE: src/context/AuthContext.jsx
+// ============================================================
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
+// 15 minutes inactivity, 1 minute warning before logout
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
+const WARNING_BEFORE_LOGOUT = 60 * 1000;
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+
+  // Refs for timers so we can clear them from anywhere
+  const logoutTimerRef = useRef(null);
+  const warningTimerRef = useRef(null);
+  const signOutFnRef = useRef(null);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -21,7 +33,6 @@ export function AuthProvider({ children }) {
       }
     });
 
-    // Listen for auth changes (login, logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -35,21 +46,18 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Safely creates profile/role if they don't exist (without overwriting Admins)
   const handleUserSetup = async (userId) => {
     try {
-      // 1. Ensure role exists
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('user_id', userId)
         .maybeSingle();
-        
+
       if (!roleData) {
         await supabase.from('user_roles').insert({ user_id: userId, role: 'user' });
       }
 
-      // 2. Ensure profile exists
       const { data: profileData } = await supabase
         .from('profiles')
         .select('id')
@@ -60,7 +68,6 @@ export function AuthProvider({ children }) {
         await supabase.from('profiles').insert({ id: userId });
       }
 
-      // 3. Fetch actual role to set isAdmin state
       const { data: role } = await supabase
         .from('user_roles')
         .select('role')
@@ -76,10 +83,71 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
+    // Clear all inactivity timers
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    logoutTimerRef.current = null;
+    warningTimerRef.current = null;
+    setShowInactivityWarning(false);
     await supabase.auth.signOut();
   };
 
-  const value = { user, isAdmin, loading, signOut };
+  // Store signOut in a ref so the timer callback always calls the latest version
+  signOutFnRef.current = signOut;
+
+  // ---- INACTIVITY TIMER ----
+  const resetInactivityTimer = useCallback(() => {
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    setShowInactivityWarning(false);
+
+    // Show warning 1 minute before logout
+    warningTimerRef.current = setTimeout(() => {
+      setShowInactivityWarning(true);
+    }, INACTIVITY_TIMEOUT - WARNING_BEFORE_LOGOUT);
+
+    // Log out after full timeout
+    logoutTimerRef.current = setTimeout(() => {
+      signOutFnRef.current?.();
+    }, INACTIVITY_TIMEOUT);
+  }, []);
+
+  // Start/reset inactivity timer when user logs in, clean up on logout
+  useEffect(() => {
+    if (!user || loading) return;
+
+    const activityEvents = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    const handleActivity = () => resetInactivityTimer();
+
+    activityEvents.forEach((evt) => {
+      window.addEventListener(evt, handleActivity, { passive: true });
+    });
+
+    // Start the timer
+    resetInactivityTimer();
+
+    return () => {
+      activityEvents.forEach((evt) => {
+        window.removeEventListener(evt, handleActivity);
+      });
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, [user, loading, resetInactivityTimer]);
+
+  // Called when user clicks "Stay Logged In" in the warning modal
+  const extendSession = useCallback(() => {
+    resetInactivityTimer();
+  }, [resetInactivityTimer]);
+
+  const value = {
+    user,
+    isAdmin,
+    loading,
+    signOut,
+    showInactivityWarning,
+    extendSession,
+  };
 
   return (
     <AuthContext.Provider value={value}>

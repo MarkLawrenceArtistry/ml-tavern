@@ -92,15 +92,15 @@ export default function Profile() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         
         {/* LEFT DIV: Trainer Card + Download Button */}
-        <div className="flex flex-col items-center">
-          <div className="lg:sticky lg:top-24">
+        <div className="flex flex-col items-center justify-center">
             {/* Pass ref here to capture the card, hideDownload to remove internal button */}
+            <p className='mb-2 text-white/40'>Preview</p>
             <TrainerCard ref={cardRef} profile={profile} hideDownload />
             
             {/* The Download Button exactly at the bottom of the card */}
             <button 
               onClick={handleDownload} 
-              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-tavern-accent hover:bg-red-700 text-white text-sm font-bold transition-colors"
+              className="mt-9 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-tavern-accent hover:bg-red-700 text-white text-sm font-bold transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -109,7 +109,6 @@ export default function Profile() {
               </svg>
               Download as PNG
             </button>
-          </div>
         </div>
 
         {/* RIGHT DIV: The Edit Form */}

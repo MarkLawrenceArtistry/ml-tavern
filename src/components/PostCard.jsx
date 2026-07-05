@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
-// Color configs for each tag
 const TAG_CONFIG = {
   'Pilot Service': {
     color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -23,7 +22,9 @@ const TAG_CONFIG = {
 };
 
 function timeAgo(dateString) {
-  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  const seconds = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / 1000
+  );
   if (seconds < 60) return 'just now';
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -31,10 +32,17 @@ function timeAgo(dateString) {
   return new Date(dateString).toLocaleDateString();
 }
 
-export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPinChange }) {
+export default function PostCard({
+  post,
+  onBookmarkChange,
+  onUpvoteChange,
+  onPinChange,
+  onDelete,
+}) {
   const { user, isAdmin } = useAuth();
   const [showReport, setShowReport] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const tc = TAG_CONFIG[post.tag] || TAG_CONFIG['Pilot Service'];
   const postLink = `${tc.route}?post=${post.id}`;
@@ -108,31 +116,67 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
     onPinChange?.(post.id, newVal);
   };
 
+  // ---------- DELETE (admin only) ----------
+  const handleDelete = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAdmin) return;
+    if (!window.confirm(`Delete "${post.title}"? This cannot be undone.`))
+      return;
+
+    setDeleting(true);
+    const tableMap = {
+      pilot: 'pilot_posts',
+      buy_sell: 'buy_sell_posts',
+      esports: 'esports_posts',
+    };
+
+    const { error } = await supabase
+      .from(tableMap[post.board_type])
+      .delete()
+      .eq('id', post.id);
+
+    if (error) {
+      alert('Failed to delete: ' + error.message);
+    } else {
+      onDelete?.(post.id);
+    }
+    setDeleting(false);
+  };
+
   // ---------- REPORT ----------
   const handleReport = async (reason) => {
     if (!user || user.id === post.user_id) return;
     setReporting(true);
     try {
-      await supabase.from('reports').insert({
+      const { error } = await supabase.from('reports').insert({
         reporter_id: user.id,
         target_type: 'post',
         board_type: post.board_type,
         target_id: post.id,
         reason,
       });
+      if (error) {
+        alert('Report failed: ' + error.message);
+        return;
+      }
+      setShowReport(false);
+      alert('Report submitted.');
     } catch (err) {
-      // silent
+      console.error('Report error:', err);
+      alert('Report failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setReporting(false);
     }
-    setReporting(false);
-    setShowReport(false);
-    alert('Report submitted.');
   };
 
   return (
     <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 sm:p-5 hover:bg-white/[0.05] transition-colors group relative">
-      {/* Top row: tag badge + pinned badge + admin pin button */}
+      {/* Top row: tag + pinned + admin buttons */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${tc.color}`}>
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded border ${tc.color}`}
+        >
           {post.tag}
         </span>
         {post.pinned && (
@@ -142,12 +186,23 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
         )}
         <div className="flex-1 min-w-0" />
         {isAdmin && (
-          <button
-            onClick={handlePin}
-            className="text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 text-white/30 hover:text-tavern-accent hover:border-tavern-accent/30 transition-colors opacity-0 group-hover:opacity-100"
-          >
-            {post.pinned ? 'UNPIN' : 'PIN'}
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handlePin}
+              className="text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 text-white/30 hover:text-tavern-accent hover:border-tavern-accent/30 transition-colors"
+              title={post.pinned ? 'Unpin' : 'Pin'}
+            >
+              {post.pinned ? 'UNPIN' : 'PIN'}
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-[10px] font-bold px-2 py-0.5 rounded border border-white/10 text-white/30 hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+              title="Delete"
+            >
+              {deleting ? '...' : 'DEL'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -156,9 +211,9 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
         <Link
           to={`/user/${post.user_id}`}
           onClick={(e) => e.stopPropagation()}
-          className="text-sm font-bold text-tavern-accent hover:underline truncate"
+          className="text-sm text-white/40 hover:underline truncate"
         >
-          {post.profiles?.ign || 'Unknown'}
+          {"IGN: " + post.profiles?.ign || 'Unknown'}
         </Link>
         <span className="text-white/20 shrink-0">·</span>
         <span className="text-xs text-white/30 shrink-0">
@@ -178,7 +233,6 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
 
       {/* Action bar */}
       <div className="flex items-center gap-1 mt-4 pt-3 border-t border-white/5">
-        {/* Upvote */}
         <button
           onClick={handleUpvote}
           disabled={!user || user.id === post.user_id}
@@ -200,7 +254,6 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
           <span>{post.upvote_count || 0}</span>
         </button>
 
-        {/* Comments */}
         <Link
           to={postLink}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-white/40 hover:text-white hover:bg-white/5 transition-colors"
@@ -219,7 +272,6 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
 
         <div className="flex-1" />
 
-        {/* Bookmark */}
         <button
           onClick={handleBookmark}
           disabled={!user}
@@ -241,7 +293,7 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
           </svg>
         </button>
 
-        {/* Report (only for other users' posts) */}
+        {/* Report dropdown */}
         {user && user.id !== post.user_id && (
           <div className="relative">
             <button
@@ -275,22 +327,26 @@ export default function PostCard({ post, onBookmarkChange, onUpvoteChange, onPin
                   }}
                 />
                 <div className="absolute right-0 bottom-full mb-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden">
-                  {['Spam', 'Harassment', 'Inappropriate', 'Misinformation', 'Other'].map(
-                    (r) => (
-                      <button
-                        key={r}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleReport(r);
-                        }}
-                        disabled={reporting}
-                        className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
-                      >
-                        {r}
-                      </button>
-                    )
-                  )}
+                  {[
+                    'Spam',
+                    'Harassment',
+                    'Inappropriate',
+                    'Misinformation',
+                    'Other',
+                  ].map((r) => (
+                    <button
+                      key={r}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleReport(r);
+                      }}
+                      disabled={reporting}
+                      className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      {r}
+                    </button>
+                  ))}
                 </div>
               </>
             )}
