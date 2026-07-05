@@ -69,14 +69,16 @@ const boardRoutes = { pilot: '/pilots', buy_sell: '/market', esports: '/teams' }
             <div className="p-4 border-b border-white/10 font-bold text-white">
               Notifications
             </div>
-                        <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
                 <p className="p-4 text-sm text-white/40 text-center">No notifications yet</p>
               ) : (
-                notifications.map((n) => (
+                notifications.map((n) => {
+                  const route = boardRoutes[n.board_type] || '/dashboard';
+                  return (
                   <Link 
                     key={n.id} 
-                    to={`${boardRoutes[n.board_type]}?post=${n.post_id}`}
+                    to={`${route}?post=${n.post_id}`}
                     onClick={() => !n.read && markAsRead(n.id)}
                     className={`block p-4 border-b border-white/5 cursor-pointer transition-colors hover:bg-white/5 ${
                       !n.read ? 'bg-white/5' : ''
@@ -90,7 +92,8 @@ const boardRoutes = { pilot: '/pilots', buy_sell: '/market', esports: '/teams' }
                       {new Date(n.created_at).toLocaleDateString()}
                     </p>
                   </Link>
-                ))
+                  )
+                })
               )}
             </div>
           </div>

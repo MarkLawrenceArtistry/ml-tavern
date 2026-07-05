@@ -72,7 +72,7 @@ const TrainerCard = forwardRef(({ profile, hideDownload }, ref) => {
       style={{ fontFamily: "'Open Sans', sans-serif" }}
     >
       {/* LEFT PANEL */}
-      <div className="w-[38%] bg-tavern-accent p-6 flex flex-col justify-center items-center text-center relative overflow-hidden">
+            <div className="w-[38%] p-6 flex flex-col justify-center items-center text-center relative overflow-hidden" style={{ backgroundColor: profile.card_color || '#FF2400' }}>
         <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '10px 10px'}}></div>
         
         <div className="relative z-10 w-full px-2">

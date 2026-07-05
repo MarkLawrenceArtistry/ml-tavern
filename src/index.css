@@ -12,8 +12,13 @@
     @apply bg-tavern-dark text-tavern-light antialiased;
     font-feature-settings: "cv11", "ss01";
   }
-}
 
+  /* FORCE DARK MODE FOR ALL OPERATING SYSTEM DROPDOWNS */
+  select option {
+    background-color: #111111;
+    color: #ffffff;
+  }
+}
 /* Custom Form Inputs */
 .input-style {
   @apply w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white 
@@ -27,4 +32,27 @@ select.input-style {
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
+}
+
+/* Dark Scrollbars for the whole app */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #111111; /* Dark track */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333; /* Lighter thumb */
+  border-radius: 4px;
+  border: 1px solid #222222;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #111111;
 }

@@ -10,6 +10,7 @@ import Admin from './pages/Admin';
 import BracketMaker from './pages/BracketMaker';
 import Board from './pages/Board';
 import PublicProfile from './pages/PublicProfile'; // <-- The new import
+import GamePredict from './pages/GamePredict';
 
 function ProtectedRoutes() {
   const { user, isAdmin, loading } = useAuth();
@@ -30,6 +31,7 @@ function ProtectedRoutes() {
         
         {/* HERE IS THE NEW PUBLIC PROFILE ROUTE */}
         <Route path="/user/:id" element={<PublicProfile />} />
+        <Route path="/predict" element={<GamePredict />} />
         
         {isAdmin && <Route path="/admin" element={<Admin />} />}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
