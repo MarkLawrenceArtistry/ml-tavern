@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import PostCard from '../components/PostCard';
 import PostDetail from '../components/PostDetail';
+import { containsProfanity } from '../lib/profanity';
 
 // ---- Constants ----
 const TABLES = [
@@ -251,6 +252,10 @@ export default function Feed({ tagFilter = null, title = 'Feed' }) {
     }
     if (createContent.length < 20 || createContent.length > 5000) {
       setCreateError('Content must be between 20 and 5000 characters.');
+      return;
+    }
+    if (containsProfanity(createTitle) || containsProfanity(createContent)) {
+      setCreateError('Your post contains inappropriate language. Please remove it and try again.');
       return;
     }
 

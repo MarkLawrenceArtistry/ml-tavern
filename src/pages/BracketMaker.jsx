@@ -664,7 +664,7 @@ export default function BracketMaker() {
           </div>
 
           {mode === 'single' && (
-            <label className="flex items-center gap-3 cursor-pointer select-none group">
+            <label className="flex items-center gap-3 cursor-pointer select-none group" onClick={() => setDoShuffle(!doShuffle)}>
               <div
                 className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                   doShuffle

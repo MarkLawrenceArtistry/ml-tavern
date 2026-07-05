@@ -1,7 +1,10 @@
+// ============================================================
+// FILE: src/pages/GamePredict.jsx
+// ============================================================
 import { useState, useEffect, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import MatchupCard from '../components/MatchupCard';
-import heroData from '../data/heroes.json'
+import heroData from '../data/heroes.json';
 
 const getProxyUrl = (url) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=100&h=100&fit=cover&t=square`;
 const getHeroImg = (name) => {
@@ -16,6 +19,8 @@ const ROLES = [
   { key: 'roam', label: 'ROAM' },
   { key: 'exp', label: 'EXP LANE' }
 ];
+
+const MOCK_TEXT = `## SCORE: 2 - 1 YOUR TEAM\n\n### HOW?: THE REASON\n- *Macro:* Your team's pick composition has a stronger mid-game power spike. The combination of crowd control and burst damage creates favorable engage conditions around the 4-8 minute window where most games are decided.\n- *Micro:* Individual lane matchups favor your side in 3 out of 5 roles. The gold lane and jungle specifically can generate leads that snowball into map control.\n- **Key Advantage:** Your roam hero provides more pick potential, allowing your team to force fights on your terms rather than reacting to the enemy.\n\n### WHAT TO DO?: THE SOLUTION\n- *Early Game:* Secure first turtle at all costs. Place deep vision in enemy jungle to track their jungler's pathing. Do not overextend without knowledge of enemy roamer position.\n- *Mid Game:* Rotate as a unit of 3-4 and contest every objective. Use your gold lane's wave clear to create side-lane pressure while the rest of the team groups for turtles.\n- *Late Game:* Bait out key enemy ultimates before committing to a full team fight. Focus fire priority must be enforced — do not tunnel vision on tanks.\n- **Critical Moment:** The 8-minute turtle is the turning point. Winning this fight gives your team enough gold to end the game within the next two pushes.\n\n### META: TIPS AND TRICKS\n- *Wave Management:* Freeze waves near your towers in the early game to deny enemy jungle farm and create gank opportunities.\n- *Item Timing:* Rush defense items if behind. A single anti-burst item can completely neutralize the enemy's win condition.\n- **Map Awareness:** Keep timers on every jungle camp. Knowing exactly when the enemy jungler is available for ganks prevents unnecessary deaths.\n- *Revive Strategy:* In Game 3 scenarios, adjust your ban phase to target the enemy's most impactful hero from the previous game rather than blindly banning meta picks.`;
 
 function HeroIcon({ name }) {
   const [err, setErr] = useState(false);
@@ -49,12 +54,9 @@ function PredictLoader({ step }) {
   );
 }
 
-// COMPLETELY REBUILT: Handles **bold**, *italic*, *Label:* pills, score extraction, proper typography
 function AnalysisOutput({ content }) {
   const formatInline = (text) => {
-    // Bold **text**
     let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white/90">$1</strong>');
-    // Italic *text* (for inline emphasis that isn't a label)
     formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic text-white/80 font-medium">$1</em>');
     return formatted;
   };
@@ -67,7 +69,6 @@ function AnalysisOutput({ content }) {
         const trimmed = line.trim();
         if (!trimmed) return <div key={idx} className="h-4" />;
 
-        // --- SCORE / WINNER BLOCK ---
         if (trimmed.startsWith('## WINNER:') || trimmed.startsWith('## SCORE:')) {
           const raw = trimmed.replace('## WINNER:', '').replace('## SCORE:', '').trim();
           const scoreMatch = raw.match(/(\d+)\s*[-–—]\s*(\d+)/);
@@ -91,7 +92,6 @@ function AnalysisOutput({ content }) {
           );
         }
 
-        // --- SECTION HEADERS (###) ---
         if (trimmed.startsWith('###')) {
           const title = trimmed.replace('###', '').trim();
           return (
@@ -104,17 +104,14 @@ function AnalysisOutput({ content }) {
           );
         }
 
-        // --- BULLET POINTS (- ...) ---
         if (trimmed.startsWith('- ')) {
           let text = trimmed.substring(2);
 
-          // Pattern 1: *ShortLabel*: rest → Red pill badge
           const italicLabelMatch = text.match(/^\*(.*?)\*:\s*([\s\S]*)/);
           if (italicLabelMatch) {
             const label = italicLabelMatch[1];
             const rest = italicLabelMatch[2].trim();
 
-            // Short keyword labels get the pill treatment
             if (label.length < 30) {
               return (
                 <div key={idx} className="pl-4 border-l-2 border-red-500/30 mb-5 py-1">
@@ -131,7 +128,6 @@ function AnalysisOutput({ content }) {
               );
             }
 
-            // Long italic labels (e.g. "*The Ultimate Counter (Lolita vs Miya):*") → just bold it
             return (
               <div key={idx} className="pl-4 border-l-2 border-white/10 mb-4 py-1">
                 <p className="font-bold text-white/90 text-sm sm:text-base mb-1.5 leading-snug">{label}:</p>
@@ -143,7 +139,6 @@ function AnalysisOutput({ content }) {
             );
           }
 
-          // Pattern 2: **BoldLabel**: rest → White bold sub-header
           const boldLabelMatch = text.match(/^\*\*(.*?)\*\*:\s*([\s\S]*)/);
           if (boldLabelMatch) {
             const label = boldLabelMatch[1];
@@ -159,7 +154,6 @@ function AnalysisOutput({ content }) {
             );
           }
 
-          // Pattern 3: Plain bullet
           return (
             <p
               key={idx}
@@ -169,7 +163,6 @@ function AnalysisOutput({ content }) {
           );
         }
 
-        // --- PLAIN PARAGRAPH ---
         return (
           <p
             key={idx}
@@ -182,6 +175,64 @@ function AnalysisOutput({ content }) {
   );
 }
 
+function RateLimitBanner({ retrySeconds, onRetry, onOffline }) {
+  return (
+    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-3">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 mt-0.5 w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+          <svg className="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-amber-300 font-bold text-sm mb-1">Rate limit reached</p>
+          <p className="text-white/50 text-xs leading-relaxed mb-3">
+            The free AI tier has a limited number of requests. You can wait for the cooldown to end, or generate an offline prediction instantly.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={onRetry}
+              disabled={retrySeconds > 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {retrySeconds > 0 ? (
+                <>
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"/></svg>
+                  Retry in {retrySeconds}s
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                  Retry Now
+                </>
+              )}
+            </button>
+            <button
+              onClick={onOffline}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/5 border border-white/20 text-white/60 text-xs font-bold hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Use Offline Prediction
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PageNotice({ onDismiss }) {
+  return (
+    <div className="bg-blue-500/8 border border-blue-500/20 rounded-lg px-4 py-3 mb-4 flex items-start gap-3">
+      <svg className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p className="text-white/40 text-xs leading-relaxed flex-1">
+        Predictions are powered by <span className="text-blue-400/80 font-semibold">Google Gemini AI</span>. The free tier has limited requests per minute — if you hit a limit, an <span className="text-white/60 font-semibold">offline prediction</span> will always be available as a fallback.
+      </p>
+      <button onClick={onDismiss} className="shrink-0 text-white/20 hover:text-white/50 transition-colors mt-0.5">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  );
+}
+
 export default function GamePredict() {
   const [yourTeam, setYourTeam] = useState({ gold: '', mid: '', jungle: '', roam: '', exp: '' });
   const [enemyTeam, setEnemyTeam] = useState({ gold: '', mid: '', jungle: '', roam: '', exp: '' });
@@ -189,36 +240,128 @@ export default function GamePredict() {
   const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [winnerText, setWinnerText] = useState('');
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
+  const [rateLimit, setRateLimit] = useState(null);
+
+  const cancelRef = useRef(false);
+  const hasAutoTriggered = useRef(false);
+  const isPredictingRef = useRef(false);
+  const firstLoadDone = useRef(false);
+
+  // Countdown timer for rate limit retry
+  useEffect(() => {
+    if (!rateLimit || rateLimit.retrySeconds === null || rateLimit.retrySeconds <= 0) return;
+    const timer = setTimeout(() => {
+      setRateLimit(prev => prev ? { ...prev, retrySeconds: prev.retrySeconds - 1 } : null);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [rateLimit?.retrySeconds]);
+
+  // On mount: randomly pick 10 unique heroes and assign to both teams
+  useEffect(() => {
+    if (!Array.isArray(heroData) || heroData.length < 10) return;
+
+    const shuffled = [...heroData].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 10);
+    const roles = ['gold', 'mid', 'jungle', 'roam', 'exp'];
+
+    const yt = {};
+    const et = {};
+    roles.forEach((role, i) => {
+      yt[role] = selected[i].hero_name;
+      et[role] = selected[i + 5].hero_name;
+    });
+
+    setYourTeam(yt);
+    setEnemyTeam(et);
+  }, []);
+
+  const isFormValid = Object.values(yourTeam).every(Boolean) && Object.values(enemyTeam).every(Boolean);
+  const allSelectedHeroes = [...Object.values(yourTeam).filter(Boolean), ...Object.values(enemyTeam).filter(Boolean)];
+  const showCancel = loadingStep > 0 || analysis;
+
+  // Auto-trigger prediction once heroes are filled in
+  useEffect(() => {
+    if (hasAutoTriggered.current) return;
+    if (!isFormValid) return;
+    if (loadingStep > 0 || analysis) return;
+
+    hasAutoTriggered.current = true;
+    const timer = setTimeout(() => {
+      handlePredict({ preventDefault: () => {} });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [isFormValid, loadingStep, analysis]);
 
   const handleTeamChange = (isYourTeam, role, value) => {
     if (isYourTeam) setYourTeam(prev => ({ ...prev, [role]: value }));
     else setEnemyTeam(prev => ({ ...prev, [role]: value }));
   };
 
+  const parseRateLimitError = (msg) => {
+    const isRateLimit = /quota|rate.?limit|exceeded|429/i.test(msg);
+    const retryMatch = msg.match(/retry in ([\d.]+)s/i);
+    const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 30;
+    return isRateLimit ? { retrySeconds } : null;
+  };
+
+  const handleOfflinePredict = () => {
+    setRateLimit(null);
+    setError('');
+    setWinnerText(MOCK_TEXT);
+    setAnalysis(MOCK_TEXT);
+  };
+
   const handlePredict = async (e) => {
     e.preventDefault();
+    if (isPredictingRef.current) return;
+
     setError(''); setAnalysis(''); setWinnerText('');
+    setRateLimit(null);
+    cancelRef.current = false;
+    isPredictingRef.current = true;
 
     const team1Arr = Object.values(yourTeam).filter(Boolean);
     const team2Arr = Object.values(enemyTeam).filter(Boolean);
 
-    if (team1Arr.length < 5 || team2Arr.length < 5) return setError('Please select a hero for all 5 roles on both teams.');
-    if (new Set([...team1Arr, ...team2Arr]).size !== 10) return setError('Duplicate heroes detected.');
+    if (team1Arr.length < 5 || team2Arr.length < 5) {
+      isPredictingRef.current = false;
+      return setError('Please select a hero for all 5 roles on both teams.');
+    }
+    if (new Set([...team1Arr, ...team2Arr]).size !== 10) {
+      isPredictingRef.current = false;
+      return setError('Duplicate heroes detected.');
+    }
 
     try {
       setLoadingStep(1);
       await new Promise(res => setTimeout(res, 300));
+      if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
+
       setLoadingStep(2);
 
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-      if (!API_KEY) {
+      if (!firstLoadDone.current) {
+        // ── FIRST LOAD: mock data, no API call ──
+        firstLoadDone.current = true;
         await new Promise(res => setTimeout(res, 3000));
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
+
+        setLoadingStep(3);
+        await new Promise(res => setTimeout(res, 400));
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
+
+        setLoadingStep(4);
+        await new Promise(res => setTimeout(res, 200));
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
+
+        setWinnerText(MOCK_TEXT);
+        setAnalysis(MOCK_TEXT);
         setLoadingStep(0);
-        const mockText = `## SCORE: 2 - 1 YOUR TEAM\n\n### PHASE 1: EARLY GAME (0-4 MINS)\n- *Macro:* Focus on securing the first turtle and establishing jungle vision dominance. Do not contest the first crab if Eudora is missing.\n- *Micro:* Bruno must play extremely safe. Do not push past the river. Freeze the lane near your Tier 1 tower.\n- *Key Detail:* If Eudora gets an early ambush kill on Bruno, Fanny will uncontested take the Blue Buff and snowball out of control.\n\n### PHASE 2: MID GAME (4-8 MINS)\n- *Macro:* Hayabusa out-tempos Bane in the jungle. Force side-lane objectives while Bane is farming. Split push to draw enemies away from Turtle.\n- *Micro:* Saber needs to find picks on Rafaela or Miya during lane rotations. Use Skill 2 combo over walls.\n- **Jungle Tracking:** Always keep a ward on the enemy Blue Buff pit after the 4-minute mark.\n\n### PHASE 3: LATE GAME (8+ MINS)\n- *Macro:* Group as 5 and force Lord fights. Your team comp is significantly stronger in 5v5 front-to-back engagements.\n- *Micro:* Lolita must time her Skill 2 exactly when Miya activates her Ultimate. This single interaction wins or loses the late-game team fight.\n- **Win Condition:** Bait out Fanny's cables before engaging. Once Fanny is locked down, collapse on the backline immediately.`;
-        setWinnerText(mockText);
-        setAnalysis(mockText);
       } else {
+        // ── SUBSEQUENT: real Gemini API call ──
+        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!API_KEY) throw new Error("API key not configured. Add VITE_GEMINI_API_KEY to your .env.local file.");
+
         const prompt = `You are an expert MLBB esports analyst. Analyze this Best of 3 series.
 Your Team: Gold: ${yourTeam.gold}, Mid: ${yourTeam.mid}, Jungle: ${yourTeam.jungle}, Roam: ${yourTeam.roam}, EXP: ${yourTeam.exp}
 Enemy Team: Gold: ${enemyTeam.gold}, Mid: ${enemyTeam.mid}, Jungle: ${enemyTeam.jungle}, Roam: ${enemyTeam.roam}, EXP: ${enemyTeam.exp}
@@ -231,11 +374,12 @@ You MUST use EXACTLY this format:
 ### WHAT TO DO?: THE SOLUTION
 ### META: TIPS AND TRICKS`;
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
 
         const data = await res.json();
         if (data.error) throw new Error(data.error.message);
@@ -243,8 +387,11 @@ You MUST use EXACTLY this format:
 
         setLoadingStep(3);
         await new Promise(res => setTimeout(res, 400));
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
+
         setLoadingStep(4);
         await new Promise(res => setTimeout(res, 200));
+        if (cancelRef.current) { setLoadingStep(0); isPredictingRef.current = false; return; }
 
         const rawText = data.candidates[0].content.parts[0].text;
         setWinnerText(rawText);
@@ -252,9 +399,32 @@ You MUST use EXACTLY this format:
         setLoadingStep(0);
       }
     } catch (err) {
-      setError(err.message || "Failed to generate prediction.");
+      if (!cancelRef.current) {
+        const parsed = parseRateLimitError(err.message || '');
+        if (parsed) {
+          setRateLimit(parsed);
+          setError('');
+        } else {
+          setError(err.message || "Failed to generate prediction.");
+        }
+      }
       setLoadingStep(0);
+    } finally {
+      isPredictingRef.current = false;
     }
+  };
+
+  const handleCancel = () => {
+    cancelRef.current = true;
+    isPredictingRef.current = false;
+    setLoadingStep(0);
+    setError('');
+    setRateLimit(null);
+    setAnalysis('');
+    setWinnerText('');
+    setYourTeam({ gold: '', mid: '', jungle: '', roam: '', exp: '' });
+    setEnemyTeam({ gold: '', mid: '', jungle: '', roam: '', exp: '' });
+    hasAutoTriggered.current = false;
   };
 
   const HeroSlot = ({ isYourTeam, role, label, value, allSelectedHeroes }) => {
@@ -273,18 +443,31 @@ You MUST use EXACTLY this format:
     );
   };
 
-  const allSelectedHeroes = [...Object.values(yourTeam).filter(Boolean), ...Object.values(enemyTeam).filter(Boolean)];
-  const isFormValid = Object.values(yourTeam).every(Boolean) && Object.values(enemyTeam).every(Boolean);
-
   return (
     <div className="max-w-6xl mx-auto">
+
+      {/* ── PAGE NOTICE ── */}
+      {!noticeDismissed && <PageNotice onDismiss={() => setNoticeDismissed(true)} />}
+
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-7rem)]">
 
         {/* LEFT COLUMN: Form */}
         <div className="w-full lg:w-[45%] flex flex-col shrink-0">
-          <div className="mb-3">
-            <h1 className="text-2xl font-extrabold text-white mb-1">Game Predict</h1>
-            <p className="text-white/40 text-sm">Assign heroes to roles to predict the outcome.</p>
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white mb-1">Game Predict</h1>
+              <p className="text-white/40 text-sm">Assign heroes to roles to predict the outcome.</p>
+            </div>
+            {showCancel && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 hover:border-red-500/50 transition-all shrink-0"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Cancel
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto pr-2 space-y-3 pb-4">
@@ -310,27 +493,48 @@ You MUST use EXACTLY this format:
           {/* FIXED AT BOTTOM */}
           <div className="pt-2 mt-2 border-t border-white/10 shrink-0 bg-tavern-dark">
             {loadingStep > 0 && <PredictLoader step={loadingStep} />}
-            <button
-              type="button"
-              onClick={handlePredict}
-              disabled={loadingStep > 0 || !isFormValid}
-              className="w-full py-3 rounded-lg bg-tavern-accent hover:bg-red-700 text-white font-bold transition-colors disabled:opacity-50 mt-2"
-            >
-              {loadingStep > 0 ? "Processing..." : "Generate Prediction"}
-            </button>
+
+            {/* ── RATE LIMIT BANNER ── */}
+            {rateLimit && !loadingStep && (
+              <RateLimitBanner
+                retrySeconds={rateLimit.retrySeconds}
+                onRetry={() => handlePredict({ preventDefault: () => {} })}
+                onOffline={handleOfflinePredict}
+              />
+            )}
+
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={handlePredict}
+                disabled={loadingStep > 0 || !isFormValid}
+                className="flex-1 py-3 rounded-lg bg-tavern-accent hover:bg-red-700 text-white font-bold transition-colors disabled:opacity-50"
+              >
+                {loadingStep > 0 ? "Processing..." : "Generate Prediction"}
+              </button>
+              {showCancel && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-5 py-3 rounded-lg bg-white/5 border border-white/20 text-white/60 font-bold hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
             {error && <p className="text-red-400 text-xs text-center mt-2 font-medium">{error}</p>}
           </div>
         </div>
 
         {/* RIGHT COLUMN: Output */}
         <div className="w-full lg:w-[55%] lg:sticky lg:top-24 lg:self-start bg-white/2 border border-white/5 rounded-xl p-4">
-          {!analysis && !loadingStep && (
+          {!analysis && !loadingStep && !rateLimit && (
             <div className="flex items-center justify-center h-full text-white/20 text-sm">
               Prediction output will appear here...
             </div>
           )}
           {loadingStep > 0 && !analysis && (
-            <div className="flex flex-col items-center justify-center h-full text-white/30">
+            <div className="flex flex-col items-center justify-center h-64 text-white/30">
               <svg className="animate-spin h-8 w-8 text-tavern-accent mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
               <p className="text-sm font-medium">AI is thinking...</p>
             </div>
@@ -342,26 +546,35 @@ You MUST use EXACTLY this format:
                 enemyTeam={enemyTeam}
                 winnerText={winnerText}
               />
-              <button
-                onClick={async () => {
-                  const el = document.getElementById('matchup-card-img');
-                  if (!el) return alert('Card not ready');
-                  try {
-                    const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
-                    const link = document.createElement('a');
-                    link.download = `MLBB-Prediction-${Date.now()}.png`;
-                    link.href = dataUrl;
-                    link.click();
-                  } catch (err) {
-                    alert('Failed to generate image.');
-                    console.error(err);
-                  }
-                }}
-                className="w-full mb-6 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/20 text-sm font-bold text-white/60 hover:text-white hover:border-white/40 transition-colors mt-6"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download Matchup Report
-              </button>
+              <div className="flex gap-2 mt-6 mb-6">
+                <button
+                  onClick={async () => {
+                    const el = document.getElementById('matchup-card-img');
+                    if (!el) return alert('Card not ready');
+                    try {
+                      const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+                      const link = document.createElement('a');
+                      link.download = `MLBB-Prediction-${Date.now()}.png`;
+                      link.href = dataUrl;
+                      link.click();
+                    } catch (err) {
+                      alert('Failed to generate image.');
+                      console.error(err);
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/20 text-sm font-bold text-white/60 hover:text-white hover:border-white/40 transition-colors"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  Download
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  Cancel
+                </button>
+              </div>
 
               <AnalysisOutput content={analysis} />
             </div>
