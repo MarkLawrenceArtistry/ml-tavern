@@ -540,7 +540,7 @@ You MUST use EXACTLY this format:
       {/* ── PAGE NOTICE ── */}
       {!noticeDismissed && <PageNotice onDismiss={() => setNoticeDismissed(true)} />}
 
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-7rem)]">
+            <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-7rem)]">
 
         {/* LEFT COLUMN: Form */}
         <div className="w-full lg:w-[45%] flex flex-col shrink-0">

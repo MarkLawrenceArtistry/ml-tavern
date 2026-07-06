@@ -61,8 +61,8 @@ function CommentRow({ comment, boardType, currentUserId, isAdmin, onDelete }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!isAdmin) return;
+    const handleDelete = async () => {
+    if (!(isAdmin || currentUserId === comment.user_id)) return;
     if (!window.confirm('Delete this comment?')) return;
     setDeleting(true);
     const { error } = await supabase.from('comments').delete().eq('id', comment.id);
@@ -121,8 +121,8 @@ function CommentRow({ comment, boardType, currentUserId, isAdmin, onDelete }) {
             </div>
           )}
 
-          {/* Delete — admin only */}
-          {isAdmin && (
+                    {/* Delete — admin or owner */}
+          {(isAdmin || currentUserId === comment.user_id) && (
             <button
               onClick={handleDelete}
               disabled={deleting}
