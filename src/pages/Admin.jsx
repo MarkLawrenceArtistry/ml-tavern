@@ -1,10 +1,15 @@
 // ============================================================
 // FILE: src/pages/Admin.jsx
 // ============================================================
-import { useState, useEffect, useCallback  } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+
 const PAGE_SIZE = 10;
+
+/* ────────────────────────────────────────────
+   Helper functions
+   ──────────────────────────────────────────── */
 
 function timeAgo(dateString) {
   if (!dateString) return '—';
@@ -19,15 +24,46 @@ function timeAgo(dateString) {
 function formatDate(dateString) {
   if (!dateString) return '—';
   return new Date(dateString).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/* ────────────────────────────────────────────
+   Shared UI components
+   ──────────────────────────────────────────── */
+
 function KPICard({ label, value, sub, accent = false }) {
   return (
-    <div className={`p-5 rounded-xl border ${accent ? 'bg-tavern-accent/10 border-tavern-accent/20' : 'bg-white/[0.03] border-white/[0.06]'}`}>
-      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">{label}</p>
-      <p className={`text-3xl font-black tabular-nums ${accent ? 'text-tavern-accent' : 'text-white'}`}>{value}</p>
+    <div
+      className={`p-5 rounded-xl border transition-colors ${
+        accent
+          ? 'bg-tavern-accent/10 border-tavern-accent/20'
+          : 'bg-white/[0.03] border-white/[0.06]'
+      }`}
+    >
+      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">
+        {label}
+      </p>
+      <p
+        className={`text-3xl font-black tabular-nums ${
+          accent ? 'text-tavern-accent' : 'text-white'
+        }`}
+      >
+        {value}
+      </p>
       {sub && <p className="text-xs text-white/30 mt-1">{sub}</p>}
     </div>
   );
@@ -39,151 +75,39 @@ function MiniBar({ label, value, max, color }) {
     <div className="flex items-center gap-3">
       <span className="text-xs text-white/50 w-24 shrink-0 truncate">{label}</span>
       <div className="flex-1 h-5 bg-white/5 rounded-md overflow-hidden">
-        <div className="h-full rounded-md transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div
+          className="h-full rounded-md transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
       </div>
-      <span className="text-xs font-bold text-white/70 tabular-nums w-10 text-right">{value}</span>
+      <span className="text-xs font-bold text-white/70 tabular-nums w-10 text-right">
+        {value}
+      </span>
     </div>
   );
 }
 
-function AllUsersList() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const PAGE_SIZE = 20;
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      let q = supabase
-        .from('profiles')
-        .select('id, ign, premium, created_at')
-        .order('created_at', { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      
-      if (search.trim()) {
-        q = q.ilike('ign', `%${search.trim()}%`);
-      }
-
-      const { data, count } = await q;
-      setUsers(data || []);
-      setTotalCount(count || 0);
-      setLoading(false);
-    })();
-  }, [page, search]);
-
-  const [totalCount, setTotalCount] = useState(0);
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-  if (loading) {
-    return (
-      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 text-center">
-        <div className="inline-block w-5 h-5 border-2 border-tavern-accent border-t-transparent rounded-full animate-spin mb-2" />
-        <p className="text-xs text-white/30">Loading users...</p>
-      </div>
-    );
-  }
-
+function EmptyState({ title, subtitle }) {
   return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider">
-          All Users ({totalCount})
-        </h3>
-        <div className="relative">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Search IGN..."
-            className="w-48 pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/25 focus:outline-none focus:ring-1 focus:ring-tavern-accent transition-all"
-          />
-        </div>
-      </div>
-
-      {users.length === 0 ? (
-        <p className="text-white/20 text-sm text-center py-8">No users found.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">User</th>
-                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Status</th>
-                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Joined</th>
-                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="py-2.5">
-                    <Link to={`/user/${u.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                      <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold text-white/30 shrink-0">
-                        {(u.ign || '??').substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white/80 truncate max-w-[140px]">{u.ign || 'Unknown'}</p>
-                        <p className="text-[9px] text-white/20 font-mono">{u.id.substring(0, 8)}...</p>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="py-2.5">
-                    {u.premium ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-tavern-accent bg-tavern-accent/10 px-2 py-0.5 rounded">
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        Premium
-                      </span>
-                    ) : (
-                      <span className="text-[9px] font-bold text-white/20">Free</span>
-                    )}
-                  </td>
-                  <td className="py-2.5 text-xs text-white/30 whitespace-nowrap">
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-2.5">
-                    <Link
-                      to={`/user/${u.id}`}
-                      className="text-[10px] font-bold text-white/30 hover:text-tavern-accent transition-colors"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-          <p className="text-[10px] text-white/20">
-            Page {page + 1} of {totalPages}
-          </p>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-colors disabled:opacity-30"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-colors disabled:opacity-30"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="text-center py-16">
+      <p className="text-white/20 text-lg font-bold mb-1">{title}</p>
+      <p className="text-white/15 text-sm">{subtitle}</p>
     </div>
   );
 }
+
+function LoadingSpinner({ label = 'Loading…' }) {
+  return (
+    <div className="text-center py-16 text-white/40">
+      <div className="inline-block w-6 h-6 border-2 border-tavern-accent border-t-transparent rounded-full animate-spin mb-3" />
+      <p className="text-sm">{label}</p>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Users Panel
+   ──────────────────────────────────────────── */
 
 function UsersPanel() {
   const [users, setUsers] = useState([]);
@@ -231,13 +155,17 @@ function UsersPanel() {
     setPage(1);
   };
 
-  // Build page number buttons (show max 7 with ellipsis)
   const getPageNumbers = () => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (totalPages <= 7)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [];
     pages.push(1);
     if (page > 3) pages.push('...');
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+    for (
+      let i = Math.max(2, page - 1);
+      i <= Math.min(totalPages - 1, page + 1);
+      i++
+    ) {
       pages.push(i);
     }
     if (page < totalPages - 2) pages.push('...');
@@ -250,7 +178,9 @@ function UsersPanel() {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-extrabold text-white">
           Users
-          <span className="ml-2 text-sm font-semibold text-white/30">({total} total)</span>
+          <span className="ml-2 text-sm font-semibold text-white/30">
+            ({total} total)
+          </span>
         </h2>
       </div>
 
@@ -260,9 +190,13 @@ function UsersPanel() {
           <div className="relative flex-1 max-w-md">
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
             >
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               type="text"
@@ -290,44 +224,61 @@ function UsersPanel() {
         </div>
         {activeSearch && (
           <p className="text-xs text-white/30 mt-2">
-            Filtering by &quot;{activeSearch}&quot; — {total} result{total !== 1 ? 's' : ''}
+            Filtering by &quot;{activeSearch}&quot; — {total} result
+            {total !== 1 ? 's' : ''}
           </p>
         )}
       </form>
 
       {/* ── Table ── */}
       {loading ? (
-        <div className="text-center py-16 text-white/40">
-          <div className="inline-block w-6 h-6 border-2 border-tavern-accent border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-sm">Loading users…</p>
-        </div>
+        <LoadingSpinner label="Loading users…" />
       ) : users.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-white/30 text-lg font-bold mb-1">No users found</p>
-          <p className="text-white/20 text-sm">Try a different search term</p>
-        </div>
+        <EmptyState
+          title="No users found"
+          subtitle="Try a different search term"
+        />
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border border-white/10">
             <table className="w-full text-sm text-left">
               <thead className="bg-white/[0.03]">
                 <tr>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">IGN</th>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Email</th>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Role</th>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Premium</th>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Last Active</th>
-                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Joined</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    IGN
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    Role
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    Premium
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    Last Active
+                  </th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">
+                    Joined
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <tr
+                    key={u.id}
+                    className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                  >
                     <td className="px-4 py-3">
-                      <span className="text-white font-semibold">{u.ign || '—'}</span>
+                      <span className="text-white font-semibold">
+                        {u.ign || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white/70 font-mono text-xs">{u.email || '—'}</span>
+                      <span className="text-white/70 font-mono text-xs">
+                        {u.email || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -342,16 +293,22 @@ function UsersPanel() {
                     </td>
                     <td className="px-4 py-3">
                       {u.premium ? (
-                        <span className="text-amber-400 text-xs font-bold">★ Yes</span>
+                        <span className="text-amber-400 text-xs font-bold">
+                          ★ Yes
+                        </span>
                       ) : (
                         <span className="text-white/20 text-xs">No</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white/50 text-xs">{timeAgo(u.last_active)}</span>
+                      <span className="text-white/50 text-xs">
+                        {timeAgo(u.last_active)}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white/50 text-xs">{formatDate(u.created_at)}</span>
+                      <span className="text-white/50 text-xs">
+                        {formatDate(u.created_at)}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -377,7 +334,10 @@ function UsersPanel() {
 
                 {getPageNumbers().map((p, i) =>
                   p === '...' ? (
-                    <span key={`ellipsis-${i}`} className="px-2 text-white/20 text-xs">
+                    <span
+                      key={`ellipsis-${i}`}
+                      className="px-2 text-white/20 text-xs"
+                    >
                       …
                     </span>
                   ) : (
@@ -411,6 +371,22 @@ function UsersPanel() {
   );
 }
 
+/* ────────────────────────────────────────────
+   Admin Page
+   ──────────────────────────────────────────── */
+
+const BOARD_TABLE = {
+  pilot: 'pilot_posts',
+  buy_sell: 'buy_sell_posts',
+  esports: 'esports_posts',
+};
+
+const BOARD_LABEL = {
+  pilot: 'Pilot',
+  buy_sell: 'Buy & Sell',
+  esports: 'Esports',
+};
+
 export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -434,30 +410,85 @@ export default function Admin() {
   // Lists
   const [recentUsers, setRecentUsers] = useState([]);
   const [reports, setReports] = useState([]);
+  const [reportPostInfo, setReportPostInfo] = useState({});
   const [loadingAction, setLoadingAction] = useState(null);
+  const [actionError, setActionError] = useState('');
 
+  /* ── Fetch all dashboard data ── */
   const fetchKPIs = async () => {
     setLoading(true);
     try {
       const [
-        usersRes, usersTodayRes, usersWeekRes,
-        pilotRes, marketRes, teamRes,
-        upvotesRes, bookmarksRes, commentsRes,
-        reportsRes, featuredRes,
+        usersRes,
+        usersTodayRes,
+        usersWeekRes,
+        pilotRes,
+        marketRes,
+        teamRes,
+        upvotesRes,
+        bookmarksRes,
+        commentsRes,
+        reportsRes,
+        featuredPilotRes,
+        featuredMarketRes,
+        featuredTeamRes,
         recentUsersRes,
       ] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 86400000).toISOString()),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 604800000).toISOString()),
-        supabase.from('pilot_posts').select('id', { count: 'exact', head: true }),
-        supabase.from('buy_sell_posts').select('id', { count: 'exact', head: true }),
-        supabase.from('esports_posts').select('id', { count: 'exact', head: true }),
-        supabase.from('upvotes').select('id', { count: 'exact', head: true }),
-        supabase.from('bookmarks').select('id', { count: 'exact', head: true }),
-        supabase.from('comments').select('id', { count: 'exact', head: true }),
-        supabase.from('reports').select('id, reason, created_at, reporter:profiles!reports_reporter_id_fkey(ign), target_type, board_type, target_id').order('created_at', { ascending: false }).limit(20),
-        supabase.from('pilot_posts').select('id', { count: 'exact', head: true }).eq('pinned', true),
-        supabase.from('profiles').select('ign, id, created_at').order('created_at', { ascending: false }).limit(8),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(Date.now() - 604800000).toISOString()),
+        supabase
+          .from('pilot_posts')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('buy_sell_posts')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('esports_posts')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('upvotes')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('bookmarks')
+          .select('id', { count: 'exact', head: true }),
+        supabase
+          .from('comments')
+          .select('id', { count: 'exact', head: true }),
+        // ★ FIX: only fetch PENDING reports
+        supabase
+          .from('reports')
+          .select(
+            'id, reason, status, created_at, target_type, board_type, target_id, reporter:profiles!reports_reporter_id_fkey(ign)'
+          )
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('pilot_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('pinned', true),
+        supabase
+          .from('buy_sell_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('pinned', true),
+        supabase
+          .from('esports_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('pinned', true),
+        supabase
+          .from('profiles')
+          .select('ign, id, created_at')
+          .order('created_at', { ascending: false })
+          .limit(8),
       ]);
 
       const c = (r) => r.count || 0;
@@ -473,66 +504,157 @@ export default function Admin() {
         totalBookmarks: c(bookmarksRes),
         totalComments: c(commentsRes),
         pendingReports: reportsRes.data?.length || 0,
-        featuredPosts: c(featuredRes),
+        featuredPosts:
+          c(featuredPilotRes) + c(featuredMarketRes) + c(featuredTeamRes),
       });
 
       setReports(reportsRes.data || []);
       setRecentUsers(recentUsersRes.data || []);
+
+      // Enrich reports with post title + author IGN
+      const pendingReports = reportsRes.data || [];
+      const infoMap = {};
+      await Promise.all(
+        pendingReports.map(async (r) => {
+          const key = `${r.board_type}-${r.target_id}`;
+          if (infoMap[key]) return; // already fetched for this post
+          const table = BOARD_TABLE[r.board_type];
+          if (!table || r.target_type !== 'post') return;
+          try {
+            const { data: post } = await supabase
+              .from(table)
+              .select('title, user_id')
+              .eq('id', r.target_id)
+              .single();
+            if (post) {
+              const { data: author } = await supabase
+                .from('profiles')
+                .select('ign')
+                .eq('id', post.user_id)
+                .single();
+              infoMap[key] = {
+                title: post.title,
+                authorIGN: author?.ign || '—',
+              };
+            }
+          } catch {
+            // post may have been deleted already
+            infoMap[key] = null;
+          }
+        })
+      );
+      setReportPostInfo(infoMap);
     } catch (err) {
       console.error('Admin KPI fetch error:', err);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchKPIs(); }, []);
+  useEffect(() => {
+    fetchKPIs();
+  }, []);
 
+  /* ── Dismiss a report: UPDATE status instead of DELETE ── */
   const handleDismissReport = async (reportId) => {
+    setActionError('');
     setLoadingAction(reportId);
-    await supabase.from('reports').delete().eq('id', reportId);
-    setReports(prev => prev.filter(r => r.id !== reportId));
-    setKpis(prev => ({ ...prev, pendingReports: Math.max(0, prev.pendingReports - 1) }));
+    const { error } = await supabase
+      .from('reports')
+      .update({ status: 'dismissed' })
+      .eq('id', reportId);
+    if (error) {
+      setActionError(`Dismiss failed: ${error.message}`);
+      setLoadingAction(null);
+      return;
+    }
+    // Optimistically remove from list
+    setReports((prev) => prev.filter((r) => r.id !== reportId));
+    setKpis((prev) => ({
+      ...prev,
+      pendingReports: Math.max(0, prev.pendingReports - 1),
+    }));
     setLoadingAction(null);
   };
 
+  /* ── Delete a reported post + resolve all its reports ── */
   const handleDeleteReportedPost = async (report) => {
-    const tableMap = { pilot: 'pilot_posts', buy_sell: 'buy_sell_posts', esports: 'esports_posts' };
-    const table = tableMap[report.board_type];
+    const table = BOARD_TABLE[report.board_type];
     if (!table) return;
-    if (!window.confirm(`Delete this ${report.board_type} post (ID: ${report.target_id})? This cannot be undone.`)) return;
+    if (
+      !window.confirm(
+        `Delete this ${BOARD_LABEL[report.board_type] || report.board_type} post?\nThis cannot be undone.`
+      )
+    )
+      return;
 
+    setActionError('');
     const actionKey = `del-${report.id}`;
     setLoadingAction(actionKey);
 
-    // Delete the post
-    await supabase.from(table).delete().eq('id', report.target_id);
+    try {
+      // 1. Delete the post
+      const { error: delErr } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', report.target_id);
+      if (delErr) {
+        setActionError(`Delete failed: ${delErr.message}`);
+        setLoadingAction(null);
+        return;
+      }
 
-    // Delete all reports pointing to this post
-    const { data: relatedReports } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('target_type', report.target_type)
-      .eq('board_type', report.board_type)
-      .eq('target_id', report.target_id);
-    if (relatedReports && relatedReports.length > 0) {
-      const ids = relatedReports.map(r => r.id);
-      await supabase.from('reports').delete().in('id', ids);
-      setReports(prev => prev.filter(r => !ids.includes(r.id)));
-    } else {
-      setReports(prev => prev.filter(r => r.id !== report.id));
+      // 2. Resolve ALL reports pointing to this same post (update status, don't delete)
+      const { data: relatedReports } = await supabase
+        .from('reports')
+        .select('id')
+        .eq('target_type', report.target_type)
+        .eq('board_type', report.board_type)
+        .eq('target_id', report.target_id);
+
+      if (relatedReports && relatedReports.length > 0) {
+        const ids = relatedReports.map((r) => r.id);
+        await supabase
+          .from('reports')
+          .update({ status: 'resolved' })
+          .in('id', ids);
+        setReports((prev) => prev.filter((r) => !ids.includes(r.id)));
+        setKpis((prev) => ({
+          ...prev,
+          pendingReports: Math.max(0, prev.pendingReports - ids.length),
+        }));
+      } else {
+        // This specific report might not have been caught above if it was already removed
+        setReports((prev) => prev.filter((r) => r.id !== report.id));
+        setKpis((prev) => ({
+          ...prev,
+          pendingReports: Math.max(0, prev.pendingReports - 1),
+        }));
+      }
+    } catch (err) {
+      setActionError(`Error: ${err.message}`);
     }
 
-    setKpis(prev => ({ ...prev, pendingReports: Math.max(0, prev.pendingReports - (relatedReports?.length || 1)) }));
     setLoadingAction(null);
   };
 
+  /* ── Tab config ── */
   const TABS = [
     { key: 'overview', label: 'Overview' },
-    { key: 'reports', label: `Reports${kpis.pendingReports > 0 ? ` (${kpis.pendingReports})` : ''}` },
+    {
+      key: 'reports',
+      label: `Reports${kpis.pendingReports > 0 ? ` (${kpis.pendingReports})` : ''}`,
+    },
     { key: 'users', label: 'Users' },
   ];
 
-  const maxPosts = Math.max(kpis.pilotPosts, kpis.marketPosts, kpis.teamPosts, 1);
+  const maxPosts = Math.max(
+    kpis.pilotPosts,
+    kpis.marketPosts,
+    kpis.teamPosts,
+    1
+  );
 
+  /* ── Loading state ── */
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto flex items-center justify-center h-64">
@@ -542,8 +664,7 @@ export default function Admin() {
     );
   }
 
-  
-
+  /* ── Render ── */
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
@@ -551,12 +672,12 @@ export default function Admin() {
         <p className="text-white/40 text-sm">Manage your community.</p>
       </div>
 
-      {/* Tabs */}
+      {/* ── Tabs ── */}
       <div className="flex gap-1 mb-8 border-b border-white/5">
-        {TABS.map(t => (
+        {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            onClick={() => { setActiveTab(t.key); setActionError(''); }}
             className={`px-4 py-3 text-sm font-bold transition-colors relative -mb-px ${
               activeTab === t.key
                 ? 'text-tavern-accent'
@@ -571,15 +692,46 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* ===== OVERVIEW ===== */}
+      {/* ── Global action error ── */}
+      {actionError && (
+        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 font-medium">
+          {actionError}
+          <button
+            onClick={() => setActionError('')}
+            className="ml-3 text-red-400/60 hover:text-red-400 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ==================== OVERVIEW ==================== */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* KPI Grid */}
+          {/* Primary KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KPICard label="Total Users" value={kpis.totalUsers} sub={`+${kpis.newUsersToday} today, +${kpis.newUsersWeek} this week`} accent />
-            <KPICard label="Total Posts" value={kpis.totalPosts} sub={`${kpis.featuredPosts} featured`} />
-            <KPICard label="Engagement" value={kpis.totalUpvotes + kpis.totalComments} sub={`${kpis.totalUpvotes} upvotes, ${kpis.totalComments} comments`} />
-            <KPICard label="Pending Reports" value={kpis.pendingReports} sub={kpis.pendingReports > 0 ? 'Needs attention' : 'All clear'} accent={kpis.pendingReports > 0} />
+            <KPICard
+              label="Total Users"
+              value={kpis.totalUsers}
+              sub={`+${kpis.newUsersToday} today, +${kpis.newUsersWeek} this week`}
+              accent
+            />
+            <KPICard
+              label="Total Posts"
+              value={kpis.totalPosts}
+              sub={`${kpis.featuredPosts} featured`}
+            />
+            <KPICard
+              label="Engagement"
+              value={kpis.totalUpvotes + kpis.totalComments}
+              sub={`${kpis.totalUpvotes} upvotes, ${kpis.totalComments} comments`}
+            />
+            <KPICard
+              label="Pending Reports"
+              value={kpis.pendingReports}
+              sub={kpis.pendingReports > 0 ? 'Needs attention' : 'All clear'}
+              accent={kpis.pendingReports > 0}
+            />
           </div>
 
           {/* Secondary KPIs */}
@@ -592,31 +744,55 @@ export default function Admin() {
 
           {/* Posts by Category */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-5">Posts by Category</h3>
+            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-5">
+              Posts by Category
+            </h3>
             <div className="space-y-3">
-              <MiniBar label="Pilot Service" value={kpis.pilotPosts} max={maxPosts} color="#3b82f6" />
-              <MiniBar label="Buy & Sell" value={kpis.marketPosts} max={maxPosts} color="#10b981" />
-              <MiniBar label="LF Team" value={kpis.teamPosts} max={maxPosts} color="#f59e0b" />
+              <MiniBar
+                label="Pilot Service"
+                value={kpis.pilotPosts}
+                max={maxPosts}
+                color="#3b82f6"
+              />
+              <MiniBar
+                label="Buy & Sell"
+                value={kpis.marketPosts}
+                max={maxPosts}
+                color="#10b981"
+              />
+              <MiniBar
+                label="LF Team"
+                value={kpis.teamPosts}
+                max={maxPosts}
+                color="#f59e0b"
+              />
             </div>
           </div>
 
           {/* Recent Users */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">Recent Users</h3>
+            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">
+              Recent Users
+            </h3>
             <div className="space-y-2">
               {recentUsers.length === 0 ? (
                 <p className="text-white/20 text-sm">No users yet.</p>
               ) : (
-                recentUsers.map(u => (
-                  <div key={u.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                recentUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/30">
                         {(u.ign || '?').substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-sm text-white/70 font-medium">{u.ign || 'Unknown'}</span>
+                      <span className="text-sm text-white/70 font-medium">
+                        {u.ign || 'Unknown'}
+                      </span>
                     </div>
                     <span className="text-xs text-white/20">
-                      {new Date(u.created_at).toLocaleDateString()}
+                      {formatDate(u.created_at)}
                     </span>
                   </div>
                 ))
@@ -626,77 +802,175 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ===== REPORTS ===== */}
+      {/* ==================== REPORTS ==================== */}
       {activeTab === 'reports' && (
-        <div className="space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-extrabold text-white">
+              Pending Reports
+              <span className="ml-2 text-sm font-semibold text-white/30">
+                ({reports.length})
+              </span>
+            </h2>
+            <button
+              onClick={fetchKPIs}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+
           {reports.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-white/20 text-lg font-bold mb-1">No reports</p>
-              <p className="text-white/15 text-sm">Everything looks good.</p>
-            </div>
+            <EmptyState
+              title="No pending reports"
+              subtitle="Everything looks good."
+            />
           ) : (
-            reports.map(r => (
-              <div key={r.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-bold text-white/30 uppercase">{r.target_type}</span>
-                    <span className="text-white/10">·</span>
-                    <span className="text-xs text-white/30">{r.board_type}</span>
-                    <span className="text-white/10">·</span>
-                    <span className="text-xs text-white/20">ID: {r.target_id}</span>
+            <div className="space-y-3">
+              {reports.map((r) => {
+                const infoKey = `${r.board_type}-${r.target_id}`;
+                const postInfo = reportPostInfo[infoKey];
+                const isActing =
+                  loadingAction === r.id ||
+                  loadingAction === `del-${r.id}`;
+
+                return (
+                  <div
+                    key={r.id}
+                    className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 flex items-start gap-4"
+                  >
+                    {/* Icon */}
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-red-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex-1 min-w-0">
+                      {/* Meta row */}
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-xs font-bold text-white/30 uppercase">
+                          {r.target_type}
+                        </span>
+                        <span className="text-white/10">·</span>
+                        <span className="text-xs text-white/30">
+                          {BOARD_LABEL[r.board_type] || r.board_type}
+                        </span>
+                        <span className="text-white/10">·</span>
+                        <span className="text-xs text-white/20 font-mono">
+                          {r.target_id?.substring(0, 8)}…
+                        </span>
+                      </div>
+
+                      {/* Post title + link (if enriched) */}
+                      {postInfo ? (
+                        <div className="mb-2">
+                          <Link
+                            to={`/post/${r.board_type}/${r.target_id}`}
+                            className="text-sm font-bold text-tavern-accent hover:underline underline-offset-2 truncate block max-w-lg"
+                          >
+                            {postInfo.title}
+                          </Link>
+                          <p className="text-xs text-white/30">
+                            by {postInfo.authorIGN}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-white/20 mb-2 font-mono">
+                          Target ID: {r.target_id}
+                          {r.board_type !== 'post' && (
+                            <span className="ml-2">
+                              (type: {r.target_type})
+                            </span>
+                          )}
+                        </p>
+                      )}
+
+                      {/* Reason */}
+                      {r.reason && (
+                        <p className="text-sm text-white/70 bg-white/5 rounded-lg px-3 py-2 mt-2">
+                          &quot;{r.reason}&quot;
+                        </p>
+                      )}
+
+                      {/* Reporter + time */}
+                      <p className="text-xs text-white/25 mt-2">
+                        Reported by{' '}
+                        <span className="text-white/40 font-semibold">
+                          {r.reporter?.ign || 'Unknown'}
+                        </span>
+                        {' · '}
+                        {formatDateTime(r.created_at)}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <button
+                        onClick={() => handleDeleteReportedPost(r)}
+                        disabled={isActing}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-40"
+                      >
+                        {loadingAction === `del-${r.id}`
+                          ? '…'
+                          : 'Delete Post'}
+                      </button>
+                      <button
+                        onClick={() => handleDismissReport(r.id)}
+                        disabled={isActing}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
+                      >
+                        {loadingAction === r.id ? '…' : 'Dismiss'}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-sm text-white/70 mb-1">&quot;{r.reason}&quot;</p>
-                  <p className="text-xs text-white/25">
-                    Reported by <span className="text-white/40">{r.reporter?.ign || 'Unknown'}</span> · {new Date(r.created_at).toLocaleString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => handleDeleteReportedPost(r)}
-                    disabled={loadingAction === `del-${r.id}`}
-                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-40"
-                  >
-                    {loadingAction === `del-${r.id}` ? '...' : 'Delete Post'}
-                  </button>
-                  <button
-                    onClick={() => handleDismissReport(r.id)}
-                    disabled={loadingAction === r.id || loadingAction === `del-${r.id}`}
-                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
-                  >
-                    {loadingAction === r.id ? '...' : 'Dismiss'}
-                  </button>
-                </div>
-              </div>
-            ))
+                );
+              })}
+            </div>
           )}
         </div>
       )}
 
-      {/* ===== USERS ===== */}
-            {/* ===== USERS ===== */}
+      {/* ==================== USERS ==================== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
+          {/* User growth summary */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">User Growth</h3>
+            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">
+              User Growth
+            </h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-2xl font-black text-white">{kpis.totalUsers}</p>
+                <p className="text-2xl font-black text-white">
+                  {kpis.totalUsers}
+                </p>
                 <p className="text-xs text-white/30 mt-1">Total</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-green-400">+{kpis.newUsersToday}</p>
+                <p className="text-2xl font-black text-green-400">
+                  +{kpis.newUsersToday}
+                </p>
                 <p className="text-xs text-white/30 mt-1">Today</p>
               </div>
               <div>
-                <p className="text-2xl font-black text-blue-400">+{kpis.newUsersWeek}</p>
+                <p className="text-2xl font-black text-blue-400">
+                  +{kpis.newUsersWeek}
+                </p>
                 <p className="text-xs text-white/30 mt-1">This Week</p>
               </div>
             </div>
           </div>
 
+          {/* Full user table with search + pagination */}
           <UsersPanel />
         </div>
       )}

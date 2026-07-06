@@ -2,7 +2,7 @@
 // FILE: src/pages/BracketMaker.jsx
 // ============================================================
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { safeToPng } from '../lib/safeToPng';
+import { exportNodeToPng } from '../lib/exportImage';
 
 // ---- Helpers ----
 function nextPow2(n) {
@@ -550,18 +550,19 @@ export default function BracketMaker() {
     if (!imgRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await safeToPng(imgRef.current);
+      const dataUrl = await exportNodeToPng(imgRef.current);
       const a = document.createElement('a');
-      a.download = `${(name || 'bracket')
-        .replace(/\s+/g, '_')
-        .toLowerCase()}.png`;
-      a.href = url;
+      a.href = dataUrl;
+      a.download = `${name || 'bracket'}.png`;
+      document.body.appendChild(a);
       a.click();
-    } catch (e) {
-      console.error(e);
-      alert('Download failed.');
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Export failed. Try again.');
+    } finally {
+      setDownloading(false);
     }
-    setDownloading(false);
   };
 
   // ---- Derived ----

@@ -3,7 +3,7 @@
 // ============================================================
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { safeToPng } from '../lib/safeToPng';
+import { exportNodeToPng } from '../lib/exportImage';
 import MatchupCard from '../components/MatchupCard';
 import heroData from '../data/heroes.json';
 import { supabase } from '../lib/supabase';
@@ -667,7 +667,7 @@ You MUST use EXACTLY this format:
                     const el = document.getElementById('matchup-card-img');
                     if (!el) return alert('Card not ready');
                     try {
-                      const dataUrl = await safeToPng(el);
+                      const dataUrl = await exportNodeToPng(el);
                       const link = document.createElement('a');
                       link.download = `MLBB-Prediction-${Date.now()}.png`;
                       link.href = dataUrl;

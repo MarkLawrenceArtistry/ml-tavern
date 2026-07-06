@@ -1,8 +1,8 @@
 // ============================================================
-// FILE: src/components/FeedList.jsx
+// FILE: src/pages/Feed.jsx
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import PostCard from '../components/PostCard';
@@ -17,11 +17,15 @@ const TABLES = [
 ];
 
 const TAG_TO_TABLE = { 'Pilot Service': 'pilot_posts', 'Buy and Sell': 'buy_sell_posts', 'LF Team': 'esports_posts' };
-const TAG_TO_TYPE = { 'Pilot Service': 'pilot', 'Buy and Sell': 'buy_sell', 'LF Team': 'esports' };
+
+const TITLE_DESCRIPTIONS = {
+  'Pilot Services': 'Promote your services here in MLBB Tavern.',
+  'Esports Team Finder': 'Find that perfect team! or member..',
+  'Buy & Sell Market': 'Promote your products here in MLBB Tavern.',
+};
 
 function PostFormModal({ open, onClose, preselectedTag, editPost, onSaved }) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const isEdit = Boolean(editPost);
   const [tag, setTag] = useState(preselectedTag || 'Pilot Service');
   const [title, setTitle] = useState('');
@@ -89,7 +93,6 @@ function PostFormModal({ open, onClose, preselectedTag, editPost, onSaved }) {
   const handleGoToEdit = () => {
     if (!pilotWarning) return;
     onClose();
-    // Trigger edit mode via parent
     onSaved?.('edit', pilotWarning.id);
   };
 
@@ -106,20 +109,13 @@ function PostFormModal({ open, onClose, preselectedTag, editPost, onSaved }) {
           </button>
         </div>
 
-        {/* Pilot post exists warning */}
         {pilotWarning && (
           <div className="mx-5 mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
             <p className="text-amber-300 text-sm font-bold mb-1">You already have a Pilot Service post</p>
             <p className="text-white/50 text-xs mb-3">Each user can have one Pilot Service post. You can edit your existing post instead.</p>
             <div className="flex gap-2">
-              <button onClick={handleGoToEdit}
-                className="px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-colors">
-                Edit Existing Post
-              </button>
-              <button onClick={() => setPilotWarning(null)}
-                className="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-white/40 text-xs font-medium hover:bg-white/10 transition-colors">
-                Cancel
-              </button>
+              <button onClick={handleGoToEdit} className="px-3 py-1.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-colors">Edit Existing Post</button>
+              <button onClick={() => setPilotWarning(null)} className="px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-white/40 text-xs font-medium hover:bg-white/10 transition-colors">Cancel</button>
             </div>
           </div>
         )}
@@ -140,19 +136,16 @@ function PostFormModal({ open, onClose, preselectedTag, editPost, onSaved }) {
           )}
           <div>
             <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Title</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter title..." maxLength={150}
-              className="input-style" />
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Enter title..." maxLength={150} className="input-style" />
             <p className="text-[10px] text-white/20 mt-1 text-right">{title.length}/150</p>
           </div>
           <div>
             <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Content (Markdown supported)</label>
-            <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Write your post..." rows={8} maxLength={5000}
-              className="input-style resize-none" />
+            <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Write your post..." rows={8} maxLength={5000} className="input-style resize-none" />
             <p className="text-[10px] text-white/20 mt-1 text-right">{content.length}/5000</p>
           </div>
           {error && <p className="text-sm text-red-400 font-medium">{error}</p>}
-          <button type="submit" disabled={submitting}
-            className="w-full py-3 bg-tavern-accent text-white font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={submitting} className="w-full py-3 bg-tavern-accent text-white font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors disabled:opacity-50">
             {submitting ? (isEdit ? 'Saving...' : 'Posting...') : (isEdit ? 'Save Changes' : 'Post')}
           </button>
         </form>
@@ -161,7 +154,10 @@ function PostFormModal({ open, onClose, preselectedTag, editPost, onSaved }) {
   );
 }
 
-export default function FeedList({ tagFilter = null, title = 'Feed', showCreateButton = true }) {
+/* ────────────────────────────────────────────
+   Feed (the one App.jsx actually imports)
+   ──────────────────────────────────────────── */
+export default function Feed({ tagFilter = null, title = 'Feed', showCreateButton = true }) {
   const { user, isAdmin } = useAuth();
   const [posts, setPosts] = useState([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -172,6 +168,26 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
   const [showModal, setShowModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
 
+  /* ── Online count ── */
+  const [onlineCount, setOnlineCount] = useState('...');
+  const onlineRef = useRef(null);
+
+  useEffect(() => {
+    const fetchOnline = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_online_count');
+        if (!error && data !== null) setOnlineCount(data);
+        else setOnlineCount(0);
+      } catch {
+        setOnlineCount(0);
+      }
+    };
+    fetchOnline();
+    onlineRef.current = setInterval(fetchOnline, 30000);
+    return () => clearInterval(onlineRef.current);
+  }, []);
+
+  /* ── Fetch posts ── */
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
@@ -223,7 +239,7 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
         return count || 0;
       });
       setFeaturedCount((await Promise.all(fqs)).reduce((a, b) => a + b, 0));
-    } catch (err) { console.error('FeedList fetch error:', err); }
+    } catch (err) { console.error('Feed fetch error:', err); }
     finally { setLoading(false); }
   }, [tagFilter, activeSearch, user]);
 
@@ -231,44 +247,23 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
 
   const handleSearch = (e) => { e.preventDefault(); setActiveSearch(searchInput.trim()); };
   const handleClear = () => { setSearchInput(''); setActiveSearch(''); };
-
-  const handleUpvoteChange = (id, delta, hasUpvoted) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, upvote_count: (p.upvote_count || 0) + delta, has_upvoted: hasUpvoted } : p));
-  };
-  const handleBookmarkChange = (id, hasBookmarked) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, has_bookmarked: hasBookmarked } : p));
-  };
-  const handlePinChange = (id, pinned) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned } : p));
-  };
-  const handleDelete = (id) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
-  };
+  const handleUpvoteChange = (id, delta, hasUpvoted) => { setPosts(prev => prev.map(p => p.id === id ? { ...p, upvote_count: (p.upvote_count || 0) + delta, has_upvoted: hasUpvoted } : p)); };
+  const handleBookmarkChange = (id, hasBookmarked) => { setPosts(prev => prev.map(p => p.id === id ? { ...p, has_bookmarked: hasBookmarked } : p)); };
+  const handlePinChange = (id, pinned) => { setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned } : p)); };
+  const handleDelete = (id) => { setPosts(prev => prev.filter(p => p.id !== id)); };
 
   const handleEdit = (postId) => {
     const post = posts.find(p => p.id === postId);
-    if (post) {
-      setEditingPost(post);
-      setShowModal(true);
-    }
+    if (post) { setEditingPost(post); setShowModal(true); }
   };
 
   const handleModalSaved = (action, postId) => {
     if (action === 'edit' && postId) {
-      // Pilot uniqueness redirect — find the post and open edit
       const post = posts.find(p => p.id === postId);
-      if (post) {
-        setEditingPost(post);
-        // showModal is already true from pilot warning flow
-        return;
-      }
-      // If not in current posts, fetch it
+      if (post) { setEditingPost(post); return; }
       const findAndEdit = async () => {
         const { data } = await supabase.from('pilot_posts').select('*').eq('id', postId).single();
-        if (data) {
-          setEditingPost({ ...data, tag: 'Pilot Service', board_type: 'pilot' });
-          setShowModal(true);
-        }
+        if (data) { setEditingPost({ ...data, tag: 'Pilot Service', board_type: 'pilot' }); setShowModal(true); }
       };
       findAndEdit();
       return;
@@ -277,28 +272,25 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
     fetchPosts();
   };
 
-  const handleCreateClick = () => {
-    setEditingPost(null);
-    setShowModal(true);
-  };
+  const handleCreateClick = () => { setEditingPost(null); setShowModal(true); };
 
   const visible = posts.slice(0, visibleCount);
   const hasMore = visibleCount < posts.length;
   const featuredLink = tagFilter ? `/featured?tag=${encodeURIComponent(tagFilter)}` : '/featured';
-
-    let titleDescription = '';
-    if(title === 'Pilot Services') {
-        titleDescription = 'Promote your services here in MLBB Tavern.'
-    } else if(title === 'Esports Team Finder') {
-        titleDescription = 'Find that perfect team! or member..'
-    } else if(title === 'Buy & Sell Market') {
-        titleDescription = 'Promote your products here in MLBB Tavern.'
-    }
+  const titleDescription = TITLE_DESCRIPTIONS[title] || '';
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{title}</h1>
-      <p className='text-white/40 mb-4'>{titleDescription}</p>
+      {/* ── Title row with online pill ── */}
+      <div className="flex items-center gap-3 flex-wrap mb-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{title}</h1>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs font-bold text-emerald-400">
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+          {onlineCount} online
+        </span>
+      </div>
+      {titleDescription && <p className="text-white/40 mb-4">{titleDescription}</p>}
+      {!titleDescription && <div className="mb-4" />}
 
       {featuredCount > 0 && (
         <Link to={featuredLink} className="block mb-6">
@@ -321,8 +313,7 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               placeholder="Search by title, content, or ID..."
-              style={{ paddingLeft: '2.5rem' }}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/25 focus:outline-none focus:ring-1 focus:ring-tavern-accent focus:border-transparent transition-all text-sm"
+              className="input-style !pl-10"
             />
           </div>
           <button type="submit" className="px-4 sm:px-5 py-2.5 bg-tavern-accent text-white text-sm font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors shrink-0">Search</button>
@@ -334,8 +325,7 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
       </form>
 
       {showCreateButton && user && (
-        <button onClick={handleCreateClick}
-          className="w-full mb-6 py-3 border-2 border-dashed border-white/10 rounded-xl text-white/40 text-sm font-bold hover:border-tavern-accent/40 hover:text-tavern-accent transition-colors">
+        <button onClick={handleCreateClick} className="w-full mb-6 py-3 border-2 border-dashed border-white/10 rounded-xl text-white/40 text-sm font-bold hover:border-tavern-accent/40 hover:text-tavern-accent transition-colors">
           + Create Post
         </button>
       )}
