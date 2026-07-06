@@ -1,10 +1,11 @@
 // ============================================================
 // FILE: src/components/Layout.jsx
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 function RulesModal({ open, onClose }) {
   if (!open) return null;
@@ -12,7 +13,6 @@ function RulesModal({ open, onClose }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#141414] border border-white/10 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto z-10">
-        {/* Header */}
         <div className="sticky top-0 bg-[#141414] border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-lg font-extrabold text-white">Community Guidelines</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors">
@@ -75,8 +75,20 @@ function RulesModal({ open, onClose }) {
 }
 
 export default function Layout({ isAdmin = false }) {
-  const { showInactivityWarning, extendSession } = useAuth();
+  const { user, showInactivityWarning, extendSession } = useAuth();
   const [showRules, setShowRules] = useState(false);
+
+  /* ── Heartbeat: update last_active every 2 minutes ── */
+  useEffect(() => {
+    if (!user) return;
+    const ping = async () => {
+      try { await supabase.rpc('update_last_active', { p_user_id: user.id }); } catch { /* silent */ }
+    };
+    ping();
+    const id = setInterval(ping, 120000);
+    return () => clearInterval(id);
+  }, [user]);
+  /* ── end heartbeat ── */
 
   return (
     <div className="min-h-screen bg-tavern-dark">
@@ -85,11 +97,8 @@ export default function Layout({ isAdmin = false }) {
         <Outlet />
       </main>
 
-       
-
       <RulesModal open={showRules} onClose={() => setShowRules(false)} />
 
-      {/* Rules button — fixed bottom-right */}
       <button
         onClick={() => setShowRules(true)}
         className="fixed bottom-5 right-5 z-40 w-10 h-10 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all shadow-lg"
@@ -102,7 +111,6 @@ export default function Layout({ isAdmin = false }) {
         </svg>
       </button>
 
-      {/* Inactivity warning modal */}
       {showInactivityWarning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" />
@@ -122,7 +130,6 @@ export default function Layout({ isAdmin = false }) {
         </div>
       )}
 
-     {/* Footer links */}
       <div className="md:ml-56 border-t border-white/5 px-4 md:px-8 py-4 flex items-center justify-between text-[10px] text-white/15">
         <div className="flex items-center gap-4">
           <Link to="/terms" className="hover:text-white/40 transition-colors">Terms of Service</Link>
@@ -130,8 +137,6 @@ export default function Layout({ isAdmin = false }) {
         </div>
         <span>Not affiliated with Moonton</span>
       </div>
-      <RulesModal open={showRules} onClose={() => setShowRules(false)} />
-        
     </div>
   );
 }

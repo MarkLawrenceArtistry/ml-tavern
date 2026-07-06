@@ -1,7 +1,7 @@
 // ============================================================
 // FILE: src/components/FeedList.jsx
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -102,6 +102,22 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
   const [featuredCount, setFeaturedCount] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
 
+  /* ── Online user count ── */
+  const [onlineCount, setOnlineCount] = useState(null);
+  const onlineIntervalRef = useRef(null);
+
+  const fetchOnlineCount = useCallback(async () => {
+    const { data, error } = await supabase.rpc('get_online_count');
+    if (!error && data !== null) setOnlineCount(data);
+  }, []);
+
+  useEffect(() => {
+    fetchOnlineCount();
+    onlineIntervalRef.current = setInterval(fetchOnlineCount, 30000);
+    return () => { if (onlineIntervalRef.current) clearInterval(onlineIntervalRef.current); };
+  }, [fetchOnlineCount]);
+  /* ── end online count ── */
+
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
@@ -173,7 +189,17 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-4">{title}</h1>
+      {/* ── Title + online count ── */}
+      <div className="flex items-center gap-3 flex-wrap mb-4">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{title}</h1>
+        {onlineCount !== null && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs font-bold text-emerald-400">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            {onlineCount} online
+          </span>
+        )}
+      </div>
+      {/* ── end title + online count ── */}
 
       {featuredCount > 0 && (
         <Link to={featuredLink} className="block mb-6">

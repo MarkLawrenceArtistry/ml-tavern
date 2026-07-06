@@ -1,9 +1,27 @@
 // ============================================================
 // FILE: src/pages/Admin.jsx
 // ============================================================
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback  } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+const PAGE_SIZE = 10;
+
+function timeAgo(dateString) {
+  if (!dateString) return '—';
+  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 2592000) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(dateString).toLocaleDateString();
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
 
 function KPICard({ label, value, sub, accent = false }) {
   return (
@@ -162,6 +180,232 @@ function AllUsersList() {
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function UsersPanel() {
+  const [users, setUsers] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    const offset = (page - 1) * PAGE_SIZE;
+
+    const [usersRes, countRes] = await Promise.all([
+      supabase.rpc('get_all_users', {
+        search_term: activeSearch,
+        limit_val: PAGE_SIZE,
+        offset_val: offset,
+      }),
+      supabase.rpc('get_users_count', {
+        search_term: activeSearch,
+      }),
+    ]);
+
+    setUsers(usersRes.data || []);
+    setTotal(typeof countRes.data === 'number' ? countRes.data : 0);
+    setLoading(false);
+  }, [page, activeSearch]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setActiveSearch(searchInput.trim());
+    setPage(1);
+  };
+
+  const handleClear = () => {
+    setSearchInput('');
+    setActiveSearch('');
+    setPage(1);
+  };
+
+  // Build page number buttons (show max 7 with ellipsis)
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [];
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+      pages.push(i);
+    }
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+    return pages;
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-extrabold text-white">
+          Users
+          <span className="ml-2 text-sm font-semibold text-white/30">({total} total)</span>
+        </h2>
+      </div>
+
+      {/* ── Search form ── */}
+      <form onSubmit={handleSearch} className="mb-5">
+        <div className="flex gap-2">
+          <div className="relative flex-1 max-w-md">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search by email or IGN…"
+              className="input-style pl-10"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-5 py-2.5 bg-tavern-accent text-white text-sm font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors shrink-0"
+          >
+            Search
+          </button>
+          {activeSearch && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="px-3 py-2.5 bg-white/5 border border-white/10 text-white/60 text-sm font-medium rounded-lg hover:bg-white/10 transition-colors shrink-0"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {activeSearch && (
+          <p className="text-xs text-white/30 mt-2">
+            Filtering by &quot;{activeSearch}&quot; — {total} result{total !== 1 ? 's' : ''}
+          </p>
+        )}
+      </form>
+
+      {/* ── Table ── */}
+      {loading ? (
+        <div className="text-center py-16 text-white/40">
+          <div className="inline-block w-6 h-6 border-2 border-tavern-accent border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-sm">Loading users…</p>
+        </div>
+      ) : users.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-white/30 text-lg font-bold mb-1">No users found</p>
+          <p className="text-white/20 text-sm">Try a different search term</p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-white/[0.03]">
+                <tr>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">IGN</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Email</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Role</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Premium</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Last Active</th>
+                  <th className="px-4 py-3 text-xs font-bold text-white/40 uppercase tracking-wider border-b border-white/10">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
+                      <span className="text-white font-semibold">{u.ign || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-white/70 font-mono text-xs">{u.email || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                          u.role === 'admin'
+                            ? 'bg-tavern-accent/20 text-tavern-accent'
+                            : 'bg-white/5 text-white/40'
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.premium ? (
+                        <span className="text-amber-400 text-xs font-bold">★ Yes</span>
+                      ) : (
+                        <span className="text-white/20 text-xs">No</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-white/50 text-xs">{timeAgo(u.last_active)}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-white/50 text-xs">{formatDate(u.created_at)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-5">
+              <p className="text-xs text-white/30">
+                Page {page} of {totalPages}
+              </p>
+
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Prev
+                </button>
+
+                {getPageNumbers().map((p, i) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${i}`} className="px-2 text-white/20 text-xs">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`min-w-[32px] h-8 text-xs font-bold rounded-lg transition-colors ${
+                        p === page
+                          ? 'bg-tavern-accent text-white'
+                          : 'border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -453,7 +697,7 @@ export default function Admin() {
             </div>
           </div>
 
-          <AllUsersList />
+          <UsersPanel />
         </div>
       )}
     </div>
