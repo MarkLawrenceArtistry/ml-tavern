@@ -2,7 +2,7 @@
 // FILE: src/components/Sidebar.jsx
 // ============================================================
 import { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import { supabase } from '../lib/supabase';
@@ -208,7 +208,7 @@ export default function Sidebar({ isAdmin }) {
         </div>
 
         {/* Navigation sections */}
-        <nav className="flex flex-col gap-4 flex-1 px-4 pt-4 overflow-y-auto border-t border-white/5">
+        <nav className="flex flex-col gap-4 flex-1 px-4 py-4 overflow-y-auto border-t border-white/5">
           {allSections.map((section) => (
             <div key={section.label}>
               <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-1.5 pl-3">
@@ -236,14 +236,25 @@ export default function Sidebar({ isAdmin }) {
           ))}
         </nav>
 
-        {/* Bottom: logged-in user + logout */}
-        <div className="px-4 mt-auto mb-5 pt-4 border-t border-white/10">
+         <div className="px-4 mt-auto mb-5 pt-4 border-t border-white/10 space-y-0.5">
+          <Link
+            to="/donate"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-pink-400/60 hover:bg-pink-500/10 hover:text-pink-400 transition-colors w-full"
+          >
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span>Support</span>
+          </Link>
+
           {user && myIgn && (
-            <div className="mb-2 px-3 py-1.5 rounded-md bg-white/5 text-xs text-white/50 truncate">
+            <div className="mx-3 my-2 px-3 py-1.5 rounded-md bg-white/5 text-xs text-white/50 truncate">
               <span className="text-white/30">Logged in as </span>
               <span className="text-white font-semibold">{myIgn}</span>
             </div>
           )}
+
           {user ? (
             <button
               onClick={signOut}

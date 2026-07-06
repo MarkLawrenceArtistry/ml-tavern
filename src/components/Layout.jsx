@@ -2,7 +2,7 @@
 // FILE: src/components/Layout.jsx
 // ============================================================
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 
@@ -85,6 +85,10 @@ export default function Layout({ isAdmin = false }) {
         <Outlet />
       </main>
 
+       
+
+      <RulesModal open={showRules} onClose={() => setShowRules(false)} />
+
       {/* Rules button — fixed bottom-right */}
       <button
         onClick={() => setShowRules(true)}
@@ -118,7 +122,16 @@ export default function Layout({ isAdmin = false }) {
         </div>
       )}
 
+     {/* Footer links */}
+      <div className="md:ml-56 border-t border-white/5 px-4 md:px-8 py-4 flex items-center justify-between text-[10px] text-white/15">
+        <div className="flex items-center gap-4">
+          <Link to="/terms" className="hover:text-white/40 transition-colors">Terms of Service</Link>
+          <Link to="/donate" className="hover:text-white/40 transition-colors">Support the Developer</Link>
+        </div>
+        <span>Not affiliated with Moonton</span>
+      </div>
       <RulesModal open={showRules} onClose={() => setShowRules(false)} />
+        
     </div>
   );
 }

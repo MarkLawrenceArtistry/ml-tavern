@@ -16,6 +16,8 @@ import Featured from './pages/Featured';
 import PublicProfile from './pages/PublicProfile';
 import GamePredict from './pages/GamePredict';
 import PostDetail from './components/PostDetail'
+import Terms from './pages/Terms';
+import Donate from './pages/Donate'
 
 function ProtectedRoutes() {
   const { user, isAdmin, loading } = useAuth();
@@ -43,6 +45,8 @@ function ProtectedRoutes() {
         <Route path="/user/:id" element={<PublicProfile />} />
         <Route path="/predict" element={<GamePredict />} />
         <Route path="/post/:boardType/:postId" element={<PostDetail />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/donate" element={<Donate />} />
         {isAdmin && <Route path="/admin" element={<Admin />} />}
         <Route path="/dashboard" element={<Navigate to="/feed" replace />} />
         <Route path="*" element={<Navigate to="/feed" replace />} />
