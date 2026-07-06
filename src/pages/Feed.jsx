@@ -281,9 +281,19 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
   const hasMore = visibleCount < posts.length;
   const featuredLink = tagFilter ? `/featured?tag=${encodeURIComponent(tagFilter)}` : '/featured';
 
+    let titleDescription = '';
+    if(title === 'Pilot Services') {
+        titleDescription = 'Promote your services here in MLBB Tavern.'
+    } else if(title === 'Esports Team Finder') {
+        titleDescription = 'Find that perfect team! or member..'
+    } else if(title === 'Buy & Sell Market') {
+        titleDescription = 'Promote your products here in MLBB Tavern.'
+    }
+
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-4">{title}</h1>
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{title}</h1>
+      <p className='text-white/40 mb-4'>{titleDescription}</p>
 
       {featuredCount > 0 && (
         <Link to={featuredLink} className="block mb-6">

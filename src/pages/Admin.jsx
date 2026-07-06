@@ -110,6 +110,37 @@ export default function Admin() {
     setLoadingAction(null);
   };
 
+  const handleDeleteReportedPost = async (report) => {
+    const tableMap = { pilot: 'pilot_posts', buy_sell: 'buy_sell_posts', esports: 'esports_posts' };
+    const table = tableMap[report.board_type];
+    if (!table) return;
+    if (!window.confirm(`Delete this ${report.board_type} post (ID: ${report.target_id})? This cannot be undone.`)) return;
+
+    const actionKey = `del-${report.id}`;
+    setLoadingAction(actionKey);
+
+    // Delete the post
+    await supabase.from(table).delete().eq('id', report.target_id);
+
+    // Delete all reports pointing to this post
+    const { data: relatedReports } = await supabase
+      .from('reports')
+      .select('id')
+      .eq('target_type', report.target_type)
+      .eq('board_type', report.board_type)
+      .eq('target_id', report.target_id);
+    if (relatedReports && relatedReports.length > 0) {
+      const ids = relatedReports.map(r => r.id);
+      await supabase.from('reports').delete().in('id', ids);
+      setReports(prev => prev.filter(r => !ids.includes(r.id)));
+    } else {
+      setReports(prev => prev.filter(r => r.id !== report.id));
+    }
+
+    setKpis(prev => ({ ...prev, pendingReports: Math.max(0, prev.pendingReports - (relatedReports?.length || 1)) }));
+    setLoadingAction(null);
+  };
+
   const TABS = [
     { key: 'overview', label: 'Overview' },
     { key: 'reports', label: `Reports${kpis.pendingReports > 0 ? ` (${kpis.pendingReports})` : ''}` },
@@ -236,13 +267,22 @@ export default function Admin() {
                     Reported by <span className="text-white/40">{r.reporter?.ign || 'Unknown'}</span> · {new Date(r.created_at).toLocaleString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleDismissReport(r.id)}
-                  disabled={loadingAction === r.id}
-                  className="shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
-                >
-                  {loadingAction === r.id ? '...' : 'Dismiss'}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => handleDeleteReportedPost(r)}
+                    disabled={loadingAction === `del-${r.id}`}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors disabled:opacity-40"
+                  >
+                    {loadingAction === `del-${r.id}` ? '...' : 'Delete Post'}
+                  </button>
+                  <button
+                    onClick={() => handleDismissReport(r.id)}
+                    disabled={loadingAction === r.id || loadingAction === `del-${r.id}`}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
+                  >
+                    {loadingAction === r.id ? '...' : 'Dismiss'}
+                  </button>
+                </div>
               </div>
             ))
           )}

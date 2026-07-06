@@ -195,8 +195,8 @@ export default function Sidebar({ isAdmin }) {
         } md:translate-x-0`}
       >
         {/* Logo + desktop notification bell */}
-        <div className="pt-16 md:pt-5 pb-2 md:mb-4 flex items-center justify-between">
-            <div className="pl-4 pr-0 py-5 flex items-center gap-3 border-b border-white/5">
+        <div className="pt-5 md:pt-5 pb-2 md:mb-2 flex items-center justify-between">
+            <div className="pl-4 pr-0 py-5 flex items-center gap-3">
                 <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
                 <span className="text-lg font-extrabold text-white tracking-tight">
                     ML<span className="text-tavern-accent">Tavern</span>
@@ -208,7 +208,7 @@ export default function Sidebar({ isAdmin }) {
         </div>
 
         {/* Navigation sections */}
-        <nav className="flex flex-col gap-4 flex-1 px-4 overflow-y-auto">
+        <nav className="flex flex-col gap-4 flex-1 px-4 pt-4 overflow-y-auto border-t border-white/5">
           {allSections.map((section) => (
             <div key={section.label}>
               <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-1.5 pl-3">
