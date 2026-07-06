@@ -182,7 +182,12 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
         let q = supabase.from(table.name).select('*, profiles:user_id(ign, id)')
           .order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(FETCH_LIMIT);
         if (activeSearch) {
-          q = q.or(`title.ilike.%${sanitize(activeSearch)}%,content.ilike.%${sanitize(activeSearch)}%`);
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeSearch);
+          if (isUuid) {
+            q = q.eq('id', activeSearch);
+          } else {
+            q = q.or(`title.ilike.%${sanitize(activeSearch)}%,content.ilike.%${sanitize(activeSearch)}%`);
+          }
         }
         const { data } = await q;
         return (data || []).map(p => ({ ...p, tag: table.tag, board_type: table.type }));
@@ -311,7 +316,14 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
         <div className="flex gap-2">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-            <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search posts..." className="input-style pl-10" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              placeholder="Search by title, content, or ID..."
+              style={{ paddingLeft: '2.5rem' }}
+              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/25 focus:outline-none focus:ring-1 focus:ring-tavern-accent focus:border-transparent transition-all text-sm"
+            />
           </div>
           <button type="submit" className="px-4 sm:px-5 py-2.5 bg-tavern-accent text-white text-sm font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors shrink-0">Search</button>
           {activeSearch && (
