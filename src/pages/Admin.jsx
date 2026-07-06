@@ -3,6 +3,7 @@
 // ============================================================
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { Link } from 'react-router-dom';
 
 function KPICard({ label, value, sub, accent = false }) {
   return (
@@ -23,6 +24,145 @@ function MiniBar({ label, value, max, color }) {
         <div className="h-full rounded-md transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
       <span className="text-xs font-bold text-white/70 tabular-nums w-10 text-right">{value}</span>
+    </div>
+  );
+}
+
+function AllUsersList() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      let q = supabase
+        .from('profiles')
+        .select('id, ign, premium, created_at')
+        .order('created_at', { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      
+      if (search.trim()) {
+        q = q.ilike('ign', `%${search.trim()}%`);
+      }
+
+      const { data, count } = await q;
+      setUsers(data || []);
+      setTotalCount(count || 0);
+      setLoading(false);
+    })();
+  }, [page, search]);
+
+  const [totalCount, setTotalCount] = useState(0);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  if (loading) {
+    return (
+      <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6 text-center">
+        <div className="inline-block w-5 h-5 border-2 border-tavern-accent border-t-transparent rounded-full animate-spin mb-2" />
+        <p className="text-xs text-white/30">Loading users...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider">
+          All Users ({totalCount})
+        </h3>
+        <div className="relative">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(0); }}
+            placeholder="Search IGN..."
+            className="w-48 pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder-white/25 focus:outline-none focus:ring-1 focus:ring-tavern-accent transition-all"
+          />
+        </div>
+      </div>
+
+      {users.length === 0 ? (
+        <p className="text-white/20 text-sm text-center py-8">No users found.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">User</th>
+                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Joined</th>
+                <th className="pb-2 text-[10px] font-bold text-white/30 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                  <td className="py-2.5">
+                    <Link to={`/user/${u.id}`} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                      <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-bold text-white/30 shrink-0">
+                        {(u.ign || '??').substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white/80 truncate max-w-[140px]">{u.ign || 'Unknown'}</p>
+                        <p className="text-[9px] text-white/20 font-mono">{u.id.substring(0, 8)}...</p>
+                      </div>
+                    </Link>
+                  </td>
+                  <td className="py-2.5">
+                    {u.premium ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-tavern-accent bg-tavern-accent/10 px-2 py-0.5 rounded">
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                        Premium
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-bold text-white/20">Free</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 text-xs text-white/30 whitespace-nowrap">
+                    {new Date(u.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="py-2.5">
+                    <Link
+                      to={`/user/${u.id}`}
+                      className="text-[10px] font-bold text-white/30 hover:text-tavern-accent transition-colors"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+          <p className="text-[10px] text-white/20">
+            Page {page + 1} of {totalPages}
+          </p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-colors disabled:opacity-30"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 transition-colors disabled:opacity-30"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -158,6 +298,8 @@ export default function Admin() {
     );
   }
 
+  
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
@@ -290,6 +432,7 @@ export default function Admin() {
       )}
 
       {/* ===== USERS ===== */}
+            {/* ===== USERS ===== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
@@ -310,27 +453,7 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-6">
-            <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">All Recent Users</h3>
-            <div className="space-y-2">
-              {recentUsers.map(u => (
-                <div key={u.id} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-white/30">
-                      {(u.ign || '?').substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm text-white/80 font-medium">{u.ign || 'Unknown'}</p>
-                      <p className="text-[10px] text-white/20 font-mono">{u.id.substring(0, 12)}...</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-white/25 shrink-0">
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AllUsersList />
         </div>
       )}
     </div>

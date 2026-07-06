@@ -520,7 +520,9 @@ You MUST use EXACTLY this format:
   };
 
   const HeroSlot = ({ isYourTeam, role, label, value, allSelectedHeroes }) => {
-    const availableHeroes = heroData.filter(h => !allSelectedHeroes.includes(h.hero_name) || h.hero_name === value);
+        const availableHeroes = heroData
+      .filter(h => !allSelectedHeroes.includes(h.hero_name) || h.hero_name === value)
+      .sort((a, b) => a.hero_name.localeCompare(b.hero_name));
     return (
       <div>
         <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">{label}</label>

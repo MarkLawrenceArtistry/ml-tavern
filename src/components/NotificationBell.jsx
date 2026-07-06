@@ -43,7 +43,6 @@ export default function NotificationBell() {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-const boardRoutes = { pilot: '/pilots', buy_sell: '/market', esports: '/teams' };
 
   return (
     <div className="relative">
@@ -73,12 +72,11 @@ const boardRoutes = { pilot: '/pilots', buy_sell: '/market', esports: '/teams' }
               {notifications.length === 0 ? (
                 <p className="p-4 text-sm text-white/40 text-center">No notifications yet</p>
               ) : (
-                notifications.map((n) => {
-                  const route = boardRoutes[n.board_type] || '/dashboard';
+                                notifications.map((n) => {
                   return (
                   <Link 
                     key={n.id} 
-                    to={`${route}?post=${n.post_id}`}
+                    to={`/post/${n.board_type}/${n.post_id}`}
                     onClick={() => !n.read && markAsRead(n.id)}
                     className={`block p-4 border-b border-white/5 cursor-pointer transition-colors hover:bg-white/5 ${
                       !n.read ? 'bg-white/5' : ''
