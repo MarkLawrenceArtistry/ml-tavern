@@ -54,28 +54,46 @@ const TrainerCard = forwardRef(({ profile, hideDownload }, ref) => {
 
   const getSafeSrc = (name) => safeImages[name] || null;
 
-  // The actual card — fixed 600x300 for consistent PNG export
   const card = (
     <div
       ref={ref}
+      id="trainer-card-img"
       className="w-full max-w-[600px] h-[300px] bg-gray-900 border border-gray-700 rounded-lg overflow-hidden flex font-sans text-white relative"
       style={{ fontFamily: "'Open Sans', sans-serif" }}
     >
-      {/* LEFT PANEL */}
-      <div
-        className="w-[38%] p-6 flex flex-col justify-center items-center text-center relative overflow-hidden"
-        style={{ backgroundColor: profile.card_color || '#FF2400' }}
-      >
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
-        <div className="relative z-10 w-full px-2">
-          <p className="text-[10px] tracking-[0.2em] text-white/70 font-bold mb-2">ESPORTS CARD</p>
-          <h2 className="text-4xl font-extrabold leading-none break-words" style={{ textShadow: '2px 2px 0px rgba(0,0,0,0.3)' }}>
+      {/* LEFT PANEL — splash art background */}
+      <div className="w-[38%] relative overflow-hidden">
+        {/* Splash art */}
+        <img
+          src="/splash.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          crossOrigin="anonymous"
+        />
+        {/* Dark gradient overlays for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
+
+        {/* Content */}
+        <div className="relative z-10 w-full h-full p-6 flex flex-col justify-center items-center text-center">
+          <p className="text-[10px] tracking-[0.2em] text-white/60 font-bold mb-2">ESPORTS CARD</p>
+          <h2
+            className="text-4xl font-extrabold leading-none break-words text-white"
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 0 2px rgba(0,0,0,0.9)' }}
+          >
             {profile.ign || 'UNKNOWN'}
           </h2>
           <div className="mt-4 w-16 h-0.5 bg-white/30 mx-auto"></div>
-          <p className="mt-3 text-xs text-white/80 font-medium tracking-wide">{profile.current_team || 'FREE AGENT'}</p>
+          <p className="mt-3 text-xs text-white/90 font-medium tracking-wide" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+            {profile.current_team || 'FREE AGENT'}
+          </p>
           {profile.description && (
-            <p className="mt-4 text-[10px] text-white/60 leading-snug italic line-clamp-4">&quot;{profile.description}&quot;</p>
+            <p
+              className="mt-4 text-[10px] text-white/70 leading-snug italic line-clamp-4"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+            >
+              &quot;{profile.description}&quot;
+            </p>
           )}
         </div>
       </div>
@@ -132,15 +150,14 @@ const TrainerCard = forwardRef(({ profile, hideDownload }, ref) => {
 
   return (
     <div className="w-full h-[180px]">
-      {/* On mobile: scale card down to fit screen width */}
-        <div
-          className="p-5 rounded-md border border-gray-50/10 flex justify-center items-center sm:transform-none transform origin-top-left"
-          style={{ transform: 'scale(0.56)', width: '178.6%' }}
-        >
-          <div>
-            {card}
-          </div>
+      <div
+        className="p-5 rounded-md border border-gray-50/10 flex justify-center items-center sm:transform-none transform origin-top-left"
+        style={{ transform: 'scale(0.56)', width: '178.6%' }}
+      >
+        <div>
+          {card}
         </div>
+      </div>
     </div>
   );
 });

@@ -131,14 +131,6 @@ export default function Profile() {
               <input type="text" name="current_team" value={profile.current_team} onChange={handleChange} className="input-style" placeholder="e.g. Team Azura" />
             </div>
 
-                      <div>
-            <label className="block text-sm font-medium text-white/70 mb-1">Card Accent Color</label>
-            <div className="flex items-center gap-3">
-              <input type="color" name="card_color" value={profile.card_color} onChange={handleChange} className="w-10 h-10 rounded cursor-pointer bg-transparent border-0" />
-              <input type="text" name="card_color" value={profile.card_color} onChange={handleChange} className="input-style w-32" placeholder="#FF2400" />
-            </div>
-          </div>
-
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1">Main Heroes (type the name of the hero!)</label>
               <div className="grid grid-cols-3 gap-3">

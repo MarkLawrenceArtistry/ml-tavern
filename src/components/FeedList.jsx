@@ -191,7 +191,7 @@ export default function FeedList({ tagFilter = null, title = 'Feed', showCreateB
         <div className="flex gap-2">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-            <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search posts..." className="input-style pl-10" />
+            <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Search posts..." className="input-style !pl-10" />
           </div>
           <button type="submit" className="px-4 sm:px-5 py-2.5 bg-tavern-accent text-white text-sm font-bold rounded-lg hover:bg-tavern-accent/80 transition-colors shrink-0">Search</button>
           {activeSearch && (

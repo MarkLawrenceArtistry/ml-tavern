@@ -46,7 +46,7 @@ export default function PostCard({
   const [deleting, setDeleting] = useState(false);
 
   const tc = TAG_CONFIG[post.tag] || TAG_CONFIG['Pilot Service'];
-  const postLink = `${tc.route}?post=${post.id}`;
+  const postLink = `/post/${post.board_type}/${post.id}`;
 
   // ---------- UPVOTE ----------
   const handleUpvote = async (e) => {

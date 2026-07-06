@@ -148,10 +148,15 @@ export default function Sidebar({ isAdmin }) {
     <>
       {/* ===== MOBILE TOP BAR ===== */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-tavern-dark/95 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4 h-14">
-        
-        <h1 className="text-lg font-bold text-tavern-accent tracking-tight">
+        <div className=" py-5 flex items-center gap-3 border-b border-white/5">
+            <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
+            <span className="text-lg font-extrabold text-white tracking-tight">
+                ML<span className="text-tavern-accent">Tavern</span>
+            </span>
+        </div>
+        {/* <h1 className="text-lg font-bold text-tavern-accent tracking-tight">
           ML TAVERN
-        </h1>
+        </h1> */}
         <div className="flex items-center gap-2">
           <NotificationBell />
           <button
@@ -190,13 +195,16 @@ export default function Sidebar({ isAdmin }) {
         } md:translate-x-0`}
       >
         {/* Logo + desktop notification bell */}
-        <div className="px-4 pt-16 md:pt-5 pb-2 md:mb-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-tavern-accent tracking-tight">
-            ML TAVERN
-          </h1>
-          <div className="hidden md:block">
-            <NotificationBell />
-          </div>
+        <div className="pt-16 md:pt-5 pb-2 md:mb-4 flex items-center justify-between">
+            <div className="pl-4 pr-0 py-5 flex items-center gap-3 border-b border-white/5">
+                <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
+                <span className="text-lg font-extrabold text-white tracking-tight">
+                    ML<span className="text-tavern-accent">Tavern</span>
+                </span>
+            </div>
+            <div className="pr-3 hidden md:block">
+                <NotificationBell />
+            </div>
         </div>
 
         {/* Navigation sections */}
@@ -229,7 +237,7 @@ export default function Sidebar({ isAdmin }) {
         </nav>
 
         {/* Bottom: logged-in user + logout */}
-        <div className="px-4 mt-auto pt-4 border-t border-white/10">
+        <div className="px-4 mt-auto mb-5 pt-4 border-t border-white/10">
           {user && myIgn && (
             <div className="mb-2 px-3 py-1.5 rounded-md bg-white/5 text-xs text-white/50 truncate">
               <span className="text-white/30">Logged in as </span>
