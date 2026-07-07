@@ -18,6 +18,7 @@ import GamePredict from './pages/GamePredict';
 import PostDetail from './components/PostDetail'
 import Terms from './pages/Terms';
 import Donate from './pages/Donate'
+import MapPlanner from './pages/MapPlanner';
 
 function ProtectedRoutes() {
   const { user, isAdmin, loading } = useAuth();
@@ -47,6 +48,7 @@ function ProtectedRoutes() {
         <Route path="/post/:boardType/:postId" element={<PostDetail />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/donate" element={<Donate />} />
+        <Route path="/jungle" element={<MapPlanner />} />
         {isAdmin && <Route path="/admin" element={<Admin />} />}
         <Route path="/dashboard" element={<Navigate to="/feed" replace />} />
         <Route path="*" element={<Navigate to="/feed" replace />} />

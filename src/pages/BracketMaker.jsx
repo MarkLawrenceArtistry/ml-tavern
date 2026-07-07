@@ -779,11 +779,19 @@ export default function BracketMaker() {
 
             {champ && (
               <div className="flex justify-center mb-15">
-                <div className="text-center py-3 px-6 bg-tavern-accent/10 border border-tavern-accent/20 rounded-xl">
-                  <p className="text-[8px] text-tavern-accent font-bold uppercase tracking-[0.3em] mb-0.5">
+                <div className="text-center py-4 px-8 bg-tavern-accent/10 border border-tavern-accent/20 rounded-xl">
+                  <svg className="w-10 h-10 text-amber-400 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                    <path d="M4 22h16" />
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                  </svg>
+                  <p className="text-[8px] text-tavern-accent font-bold uppercase tracking-[0.3em] mb-1">
                     Champion
                   </p>
-                  <p className="text-lg font-extrabold text-white">{champ}</p>
+                  <p className="text-xl font-black text-white">{champ}</p>
                 </div>
               </div>
             )}

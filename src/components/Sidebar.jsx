@@ -81,6 +81,13 @@ const Icons = {
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   ),
+  Map: () => (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  ),
 };
 
 const SECTIONS = [
@@ -98,6 +105,7 @@ const SECTIONS = [
     links: [
       { to: '/bracket', label: 'Bracket Maker', Icon: Icons.Trophy, hot: true },
       { to: '/predict', label: 'Game Predict', Icon: Icons.Brain, hot: true },
+      { to: '/jungle', label: 'Jungle Path', Icon: Icons.Map, hot: true },
     ],
   },
   {
@@ -135,7 +143,6 @@ export default function Sidebar({ isAdmin }) {
         : 'text-white/50 hover:bg-white/5 hover:text-white'
     }`;
 
-  // Build final sections list — add ADMIN section if user is admin
   const allSections = [...SECTIONS];
   if (isAdmin) {
     allSections.push({
@@ -148,15 +155,12 @@ export default function Sidebar({ isAdmin }) {
     <>
       {/* ===== MOBILE TOP BAR ===== */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-tavern-dark/95 backdrop-blur-sm border-b border-white/10 flex items-center justify-between px-4 h-14">
-        <div className=" py-5 flex items-center gap-3 border-b border-white/5">
-            <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
-            <span className="text-lg font-extrabold text-white tracking-tight">
-                ML<span className="text-tavern-accent">Tavern</span>
-            </span>
+        <div className="py-5 flex items-center gap-3 border-b border-white/5">
+          <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
+          <span className="text-lg font-extrabold text-white tracking-tight">
+            ML<span className="text-tavern-accent">Tavern</span>
+          </span>
         </div>
-        {/* <h1 className="text-lg font-bold text-tavern-accent tracking-tight">
-          ML TAVERN
-        </h1> */}
         <div className="flex items-center gap-2">
           <NotificationBell />
           <button
@@ -196,15 +200,15 @@ export default function Sidebar({ isAdmin }) {
       >
         {/* Logo + desktop notification bell */}
         <div className="pt-5 md:pt-5 pb-2 md:mb-2 flex items-center justify-between">
-            <div className="pl-4 pr-0 py-5 flex items-center gap-3">
-                <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
-                <span className="text-lg font-extrabold text-white tracking-tight">
-                    ML<span className="text-tavern-accent">Tavern</span>
-                </span>
-            </div>
-            <div className="pr-3 hidden md:block">
-                <NotificationBell />
-            </div>
+          <div className="pl-4 pr-0 py-5 flex items-center gap-3">
+            <img src="/logo.png" alt="ML Tavern" className="w-9 h-9 shrink-0" />
+            <span className="text-lg font-extrabold text-white tracking-tight">
+              ML<span className="text-tavern-accent">Tavern</span>
+            </span>
+          </div>
+          <div className="pr-3 hidden md:block">
+            <NotificationBell />
+          </div>
         </div>
 
         {/* Navigation sections */}
@@ -236,7 +240,7 @@ export default function Sidebar({ isAdmin }) {
           ))}
         </nav>
 
-         <div className="px-4 mt-auto mb-5 pt-4 border-t border-white/10 space-y-0.5">
+        <div className="px-4 mt-auto mb-5 pt-4 border-t border-white/10 space-y-0.5">
           <Link
             to="/donate"
             onClick={() => setIsOpen(false)}
