@@ -295,7 +295,7 @@ export default function Feed({ tagFilter = null, title = 'Feed', showCreateButto
 
       {featuredCount > 0 && (
         <Link to={featuredLink} className="block mb-6">
-          <div className="flex items-center justify-between px-4 py-3 bg-tavern-accent/10 border border-tavern-accent/20 rounded-xl hover:bg-tavern-accent/20 transition-colors">
+          <div className="flex items-center justify-between px-4 py-3 mt-10 bg-tavern-accent/10 border border-tavern-accent/20 rounded-xl hover:bg-tavern-accent/20 transition-colors">
             <div className="flex items-center gap-2.5">
               <span className="text-lg">⭐</span>
               <span className="text-sm font-bold text-white">{featuredCount} Featured Post{featuredCount !== 1 ? 's' : ''}</span>
