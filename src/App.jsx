@@ -19,6 +19,7 @@ import PostDetail from './components/PostDetail'
 import Terms from './pages/Terms';
 import Donate from './pages/Donate'
 import MapPlanner from './pages/MapPlanner';
+import PracticeDraft from './pages/PracticeDraft';
 
 function ProtectedRoutes() {
   const { user, isAdmin, loading } = useAuth();
@@ -49,6 +50,7 @@ function ProtectedRoutes() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/donate" element={<Donate />} />
         <Route path="/jungle" element={<MapPlanner />} />
+        <Route path="/draft" element={<PracticeDraft />} />
         {isAdmin && <Route path="/admin" element={<Admin />} />}
         <Route path="/dashboard" element={<Navigate to="/feed" replace />} />
         <Route path="*" element={<Navigate to="/feed" replace />} />

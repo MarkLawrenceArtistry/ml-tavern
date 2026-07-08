@@ -88,6 +88,13 @@ const Icons = {
       <line x1="16" y1="6" x2="16" y2="22" />
     </svg>
   ),
+  Layers: () => (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  ),
 };
 
 const SECTIONS = [
@@ -105,6 +112,7 @@ const SECTIONS = [
     links: [
       { to: '/bracket', label: 'Bracket Maker', Icon: Icons.Trophy, hot: true },
       { to: '/predict', label: 'Game Predict', Icon: Icons.Brain, hot: true },
+      { to: '/draft', label: 'Practice Draft', Icon: Icons.Layers, hot: true },
       { to: '/jungle', label: 'Jungle Path', Icon: Icons.Map, hot: true },
     ],
   },
