@@ -291,6 +291,7 @@ export default function Feed({ tagFilter = null, title = 'Feed', showCreateButto
       </div>
       {titleDescription && <p className="text-white/40 mb-4">{titleDescription}</p>}
       {!titleDescription && <div className="mb-4" />}
+      <a href="https://www.effectivecpmnetwork.com/fnx0xvqu?key=08df4561e4fa415c0059c5a689bf2832">Click here to download JUNGLE/CORE course!</a>
 
       {featuredCount > 0 && (
         <Link to={featuredLink} className="block mb-6">
