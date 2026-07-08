@@ -289,6 +289,7 @@ export default function PracticeDraft() {
   );
 
   /* ── Call Gemini when it's AI's turn ── */
+    /* ── Call Gemini when it's AI's turn ── */
   useEffect(() => {
     if (!isAiTurn) return;
     let cancelled = false;
@@ -311,30 +312,21 @@ The user has banned these heroes: ${userBans.join(', ')}
 Here are ALL available heroes that can still be banned:
  ${availableNames.join(', ')}
 
-Ban 5 heroes. Choose heroes that are:
-- Currently strong in the ranked meta
-- Versatile and difficult to counter
-- Would limit the opponent's drafting options
-
-Return ONLY a JSON array of exactly 5 hero names from the available list above. No explanation, no markdown formatting, just the array.
+Ban 5 heroes. Choose heroes that are currently strong in the ranked meta, versatile and difficult to counter.
+Return ONLY a JSON array of exactly 5 hero names from the available list. No explanation, no markdown, just the array.
 Example: ["Hero A", "Hero B", "Hero C", "Hero D", "Hero E"]`;
       } else {
         prompt = `You are a Mobile Legends: Bang Bang expert drafter in a ranked draft.
 
 Banned heroes: ${allBanned.join(', ')}
-User's team so far (${userPicks.length}/5): ${userPicks.join(', ') || 'none'}
-AI's team so far (${aiPicks.length}/5): ${aiPicks.join(', ') || 'none'}
+User's team (${userPicks.length}/5): ${userPicks.join(', ') || 'none'}
+AI's team (${aiPicks.length}/5): ${aiPicks.join(', ') || 'none'}
 
 Available heroes to pick from:
  ${availableNames.join(', ')}
 
-AI needs to pick ${currentStep.count} more hero(es). Consider:
-- Counter-picking the user's heroes
-- Synergy with AI's existing team
-- Role balance across gold, mid, jungle, exp, and roam lanes
-- Meta strength and win conditions
-
-Return ONLY a JSON array of exactly ${currentStep.count} hero name(s) from the available list above. No explanation, no markdown formatting, just the array.`;
+AI needs to pick ${currentStep.count} more hero(es). Consider counter-picking, synergy, role balance (gold, mid, jungle, exp, roam), and meta strength.
+Return ONLY a JSON array of exactly ${currentStep.count} hero name(s) from the available list. No explanation, no markdown, just the array.`;
       }
 
       try {
@@ -342,10 +334,15 @@ Return ONLY a JSON array of exactly ${currentStep.count} hero name(s) from the a
           body: { prompt },
         });
 
-        if (fnError) throw fnError;
+        if (fnError) {
+          if (fnError.status === 429 || fnError.message?.includes('429') || fnError.message?.includes('Rate')) {
+            throw new Error('Gemini is rate-limited right now. Wait 10-15 seconds, then refresh the page to continue your draft.');
+          }
+          throw new Error(fnError.message || 'Edge function error');
+        }
         if (data?.error) throw new Error(data.error);
 
-        const rawNames = parseHeroList(data?.heroes || data?.text || '');
+        const rawNames = parseHeroList(data?.text || '');
         if (!rawNames || rawNames.length === 0) throw new Error('AI returned invalid data');
 
         const valid = [];
@@ -374,21 +371,20 @@ Return ONLY a JSON array of exactly ${currentStep.count} hero name(s) from the a
         }
       } catch (err) {
         if (!cancelled) {
-          setError('AI failed to respond. ' + (err.message || 'Unknown error'));
+          setError(err.message || 'AI failed to respond.');
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    // Small delay so UI updates before the loading state
     const timer = setTimeout(callGemini, 600);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]); // Only re-run when step changes to an AI step
+  }, [step]);
 
   /* ── Start draft ── */
   const handleStart = async () => {
