@@ -278,6 +278,8 @@ export default function MapPlanner() {
           </button>
 
           <p className="text-[11px] text-white/15 text-center">2 generations per day (shared with Game Predict)</p>
+          <a className='text-white/40 text-xs my-5' href="https://www.effectivecpmnetwork.com/fnx0xvqu?key=08df4561e4fa415c0059c5a689bf2832">Click here to download JUNGLE/CORE course!</a>
+
         </div>
       </div>
     );

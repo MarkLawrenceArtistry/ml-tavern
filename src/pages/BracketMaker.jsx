@@ -699,6 +699,8 @@ export default function BracketMaker() {
           >
             Generate Bracket
           </button>
+
+          <a className='text-white/40 text-xs my-5' href="https://www.effectivecpmnetwork.com/fnx0xvqu?key=08df4561e4fa415c0059c5a689bf2832">Click here to download JUNGLE/CORE course!</a>
         </div>
       </div>
     );

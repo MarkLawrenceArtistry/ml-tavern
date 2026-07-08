@@ -553,6 +553,8 @@ You MUST use EXACTLY this format:
             <div>
               <h1 className="text-2xl font-extrabold text-white mb-1">Game Predict</h1>
               <p className="text-white/40 text-sm">Assign heroes to roles to predict the outcome.</p>
+            <a className='text-white/40 text-xs my-5' href="https://www.effectivecpmnetwork.com/fnx0xvqu?key=08df4561e4fa415c0059c5a689bf2832">Click here to download JUNGLE/CORE course!</a>
+
             </div>
             {showCancel && (
               <button
